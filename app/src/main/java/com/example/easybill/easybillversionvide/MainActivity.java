@@ -1,5 +1,7 @@
 package com.example.easybill.easybillversionvide;
 
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -9,6 +11,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.content.Intent;
 import android.os.Bundle;
@@ -41,7 +44,12 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // Get the button
         FloatingActionButton AjouterFacture =(FloatingActionButton) findViewById(R.id.AjouterFacture);
+
+        final TextView date = (TextView) findViewById(R.id.date);
+
+
         AjouterFacture.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -49,6 +57,11 @@ public class MainActivity extends AppCompatActivity {
                 Intent ajout_facture = new Intent(
                         MainActivity.this, ajout_facture.class);
                 startActivity(ajout_facture);
+
+                SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+                String date_string = prefs.getString("date", "Nothing"); //no id: default value
+                date.setText(date_string);
+
             }
         });
 

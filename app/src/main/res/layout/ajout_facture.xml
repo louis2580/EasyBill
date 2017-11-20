@@ -7,7 +7,7 @@
     android:layout_height="match_parent">
 
     <Button
-        android:id="@+id/button2"
+        android:id="@+id/validate"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
@@ -58,7 +58,7 @@
                 android:layout_weight="1"
                 android:ems="10"
                 android:hint="Prix Total"
-                android:inputType="textPersonName" />
+                android:inputType="number" />
 
             <Spinner
                 android:id="@+id/devise"
@@ -112,12 +112,15 @@
                 android:clickable="true"
                 app:srcCompat="@android:drawable/ic_menu_camera" />
 
-            <ImageView
-                android:id="@+id/ImageCapture"
+            <TextView
+                android:id="@+id/fichier_image"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
-                android:layout_weight="1"
-                app:srcCompat="@android:drawable/ic_menu_view" />
+                android:layout_alignParentLeft="true"
+                android:text="select_fichier"
+                app:layout_constraintStart_toStartOf="parent"></TextView>
+
+
         </LinearLayout>
 
     </LinearLayout>

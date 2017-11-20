@@ -3,11 +3,14 @@ package com.example.easybill.easybillversionvide;
 import android.app.DatePickerDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.drawable.RippleDrawable;
 import android.icu.text.SimpleDateFormat;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.preference.PreferenceManager;
 import android.provider.MediaStore;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.FileProvider;
@@ -17,6 +20,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -61,6 +65,8 @@ public class ajout_facture extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.ajout_facture);
 
+
+
         //Ajout du sinner devise
         spinnerDevise = (Spinner) findViewById(R.id.devise);
         adapterDevise = ArrayAdapter.createFromResource(this, R.array.devise_names, android.R.layout.simple_spinner_item);
@@ -100,12 +106,6 @@ public class ajout_facture extends AppCompatActivity {
         // Date editText
         final EditText Date= (EditText) findViewById(R.id.date);
 
-        // Ajout du bouton Capture
-        FloatingActionButton capture = (FloatingActionButton) findViewById(R.id.capture);
-
-        // Get the ImageView
-        ImageCapture = (ImageView) findViewById(R.id.ImageCapture);
-
 
         // Création de la fenêtre de dialogue
         final DatePickerDialog.OnDateSetListener date = new DatePickerDialog.OnDateSetListener() {
@@ -129,11 +129,45 @@ public class ajout_facture extends AppCompatActivity {
             }
         });
 
+
+
+        // Ajout du bouton Capture
+        FloatingActionButton capture = (FloatingActionButton) findViewById(R.id.capture);
+        // Get the editText for
+        final TextView fichier_image = (TextView) findViewById(R.id.fichier_image);
+        // Get the ImageView
+        // ImageCapture = (ImageView) findViewById(R.id.ImageCapture);
         /* Listener */
         capture.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 dispatchTakePictureIntent(ajout_facture.this);
+                //fichier_image.setText(mCurrentPhotoPath.toString());
+            }
+        });
+
+        // Get the button validate
+        Button validate = (Button) findViewById(R.id.validate);
+        // Get Prix total
+        final EditText prix = (EditText) findViewById(R.id.prix);
+        // Get Lieu
+        final EditText lieu = (EditText) findViewById(R.id.Lieu);
+
+
+        validate.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(Date.getText().toString().trim().length() == 0 && lieu.getText().toString().trim().length() == 0 && prix.getText().toString().trim().length() == 0){
+                    Toast.makeText(getBaseContext(), "Informations missing", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                else{
+                    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+                    SharedPreferences.Editor editor = prefs.edit();
+                    editor.putString("date", Date.getText().toString()); //InputString: from the EditText
+                    editor.apply();
+                    finish();
+                }
             }
         });
 
