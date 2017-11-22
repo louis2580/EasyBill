@@ -1,8 +1,9 @@
 <resources>
     <string name="app_name">Mon Portefeuille</string>
-    <string name="select_dossier">Choix du dossier</string>
+    <string name="select_dossier">Dossier :</string>
     <string name="second_activity">Multi portefeuille</string>
     <string name="ajout_facture">Formulaire pour nouvelle facture</string>
+    <string name="preferencePlace">com.example.myapp.PREFERENCE_FILE_KEY</string> //
 
     <string-array name="dossier_names">
         <item>Toutes les factures</item>

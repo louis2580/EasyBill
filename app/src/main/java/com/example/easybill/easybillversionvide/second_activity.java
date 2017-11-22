@@ -11,7 +11,7 @@ import android.view.MotionEvent;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class second_activity extends AppCompatActivity {
+public class second_activity extends AppCompatActivity { // Multi-portefeuille
 
     private GestureDetectorCompat gestureDetectorCompat;
 

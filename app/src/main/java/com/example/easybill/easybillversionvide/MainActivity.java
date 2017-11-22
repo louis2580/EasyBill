@@ -1,5 +1,6 @@
 package com.example.easybill.easybillversionvide;
 
+import android.app.Instrumentation;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
@@ -10,23 +11,45 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.content.Intent;
 import android.os.Bundle;
 
+import java.sql.Date;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+
 public class MainActivity extends AppCompatActivity {
+
+    static int ADD_FACTURE = 10;
 
     private GestureDetectorCompat gestureDetectorCompat;
 
     Spinner spinner;
     ArrayAdapter<CharSequence> adapter;
 
+    ListView billList;
+    ArrayList<Bill> bills;
+    BillAdapter billAdapter;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        SimpleDateFormat format1 = new SimpleDateFormat("yyyy-MM-dd");
+
+        billList = findViewById(R.id.billList);
+        Bill exemple = new Bill(0, "Exemple Place", format1.format(Calendar.getInstance().getTime()));
+
+        bills = new ArrayList<Bill>();
+        bills.add(exemple);
+        billAdapter = new BillAdapter(this, R.layout.liste_facture, bills);
+        billList.setAdapter(billAdapter);
 
         spinner = (Spinner) findViewById(R.id.spinner);
         adapter = ArrayAdapter.createFromResource(this, R.array.dossier_names, android.R.layout.simple_spinner_item);
@@ -47,20 +70,13 @@ public class MainActivity extends AppCompatActivity {
         // Get the button
         FloatingActionButton AjouterFacture =(FloatingActionButton) findViewById(R.id.AjouterFacture);
 
-        final TextView date = (TextView) findViewById(R.id.date);
-
-
         AjouterFacture.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 //switch another activity
                 Intent ajout_facture = new Intent(
                         MainActivity.this, ajout_facture.class);
-                startActivity(ajout_facture);
-
-                SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-                String date_string = prefs.getString("date", "Nothing"); //no id: default value
-                date.setText(date_string);
+                startActivityForResult(ajout_facture, ADD_FACTURE);
 
             }
         });
@@ -102,5 +118,27 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == ADD_FACTURE)
+        {
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+            if(resultCode == RESULT_OK) {
+                String date_string = prefs.getString("date", "Nothing"); //no id: default value
+                String place_string = prefs.getString("place", "Nothing"); //no id: default value
+                float price_string = prefs.getFloat("price", 0); //no id: default value
+
+                Bill newBill = new Bill(price_string, place_string, date_string);
+                bills.add(newBill);
+                billAdapter = new BillAdapter(this, R.layout.liste_facture, bills);
+                billList.setAdapter(billAdapter);
+
+            } else
+            {
+
+            }
+
+        }
+    }
 
 }

@@ -1,11 +1,10 @@
 package com.example.easybill.easybillversionvide;
 
+import android.annotation.SuppressLint;
 import android.app.DatePickerDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Bitmap;
-import android.graphics.drawable.RippleDrawable;
 import android.icu.text.SimpleDateFormat;
 import android.net.Uri;
 import android.os.Bundle;
@@ -14,9 +13,7 @@ import android.preference.PreferenceManager;
 import android.provider.MediaStore;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.FileProvider;
-import android.support.v4.view.GestureDetectorCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -57,6 +54,17 @@ public class ajout_facture extends AppCompatActivity {
 
     int isPhotoTaken = PHOTO_WAITING;
 
+    // Get the button validate
+    Button validate;
+    // Get Prix total
+    EditText Prix;
+    // Get Lieu
+    EditText Lieu;
+    // Ajout du calendrier
+    Calendar calendar = Calendar.getInstance();
+    // Date editText
+    EditText Date;
+
     // Create the File where the photo should go
     File photoFile = null;
 
@@ -65,8 +73,10 @@ public class ajout_facture extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.ajout_facture);
 
-
-
+        validate = (Button) findViewById(R.id.validate);
+        Prix = (EditText) findViewById(R.id.prix);
+        Lieu = (EditText) findViewById(R.id.lieu);
+        Date = (EditText) findViewById(R.id.date);
         //Ajout du sinner devise
         spinnerDevise = (Spinner) findViewById(R.id.devise);
         adapterDevise = ArrayAdapter.createFromResource(this, R.array.devise_names, android.R.layout.simple_spinner_item);
@@ -101,14 +111,10 @@ public class ajout_facture extends AppCompatActivity {
             }
         });
 
-        // Ajout du calendrier
-        final Calendar calendar = Calendar.getInstance();
-        // Date editText
-        final EditText Date= (EditText) findViewById(R.id.date);
-
 
         // Création de la fenêtre de dialogue
         final DatePickerDialog.OnDateSetListener date = new DatePickerDialog.OnDateSetListener() {
+            @SuppressLint("NewApi")
             @Override
             public void onDateSet(DatePicker view, int year, int monthOfYear,
                                   int dayOfMonth) {
@@ -141,33 +147,29 @@ public class ajout_facture extends AppCompatActivity {
         capture.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                dispatchTakePictureIntent(ajout_facture.this);
-                //fichier_image.setText(mCurrentPhotoPath.toString());
+            dispatchTakePictureIntent(ajout_facture.this);
+            //fichier_image.setText(mCurrentPhotoPath.toString());
             }
         });
-
-        // Get the button validate
-        Button validate = (Button) findViewById(R.id.validate);
-        // Get Prix total
-        final EditText prix = (EditText) findViewById(R.id.prix);
-        // Get Lieu
-        final EditText lieu = (EditText) findViewById(R.id.Lieu);
 
 
         validate.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(Date.getText().toString().trim().length() == 0 && lieu.getText().toString().trim().length() == 0 && prix.getText().toString().trim().length() == 0){
-                    Toast.makeText(getBaseContext(), "Informations missing", Toast.LENGTH_LONG).show();
-                    return;
-                }
-                else{
-                    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-                    SharedPreferences.Editor editor = prefs.edit();
-                    editor.putString("date", Date.getText().toString()); //InputString: from the EditText
-                    editor.apply();
-                    finish();
-                }
+            if(Date.getText().toString().trim().length() == 0 || Lieu.getText().toString().trim().length() == 0 || Prix.getText().toString().trim().length() == 0){
+                Toast.makeText(getBaseContext(), "missing information", Toast.LENGTH_LONG).show();
+                return;
+            }
+            else{
+                SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putString("date", Date.getText().toString()); //InputString: from the EditText
+                editor.putString("place", Lieu.getText().toString()); //InputString: from the EditText
+                editor.putFloat("price", Float.parseFloat(Prix.getText().toString())); //InputString: from the EditText
+                editor.apply();
+                setResult(RESULT_OK);
+                finish();
+            }
             }
         });
 
