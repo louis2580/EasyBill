@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Mon Portefeuille</string>
+    <string name="app_name">EasyBill</string>
     <string name="select_dossier">Dossier :</string>
     <string name="second_activity">Multi portefeuille</string>
     <string name="ajout_facture">Formulaire pour nouvelle facture</string>

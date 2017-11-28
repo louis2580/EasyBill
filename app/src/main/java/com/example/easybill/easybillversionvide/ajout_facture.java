@@ -56,6 +56,8 @@ public class ajout_facture extends AppCompatActivity {
 
     // Get the button validate
     Button validate;
+    // Get the back button
+    Button back;
     // Get Prix total
     EditText Prix;
     // Get Lieu
@@ -74,6 +76,7 @@ public class ajout_facture extends AppCompatActivity {
         setContentView(R.layout.ajout_facture);
 
         validate = (Button) findViewById(R.id.validate);
+        back = (Button) findViewById(R.id.backAddBill);
         Prix = (EditText) findViewById(R.id.prix);
         Lieu = (EditText) findViewById(R.id.lieu);
         Date = (EditText) findViewById(R.id.date);
@@ -125,20 +128,24 @@ public class ajout_facture extends AppCompatActivity {
             }
         };
 
-        //Ouvre la fenêtre lors d'un clique sur le bouton
-        Date.setOnClickListener(new View.OnClickListener() {
+        // Ouvre le calendrier lorsque Date prend le focus
+        Date.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
-            public void onClick(View v) {
-                new DatePickerDialog(ajout_facture.this, date, calendar
-                        .get(Calendar.YEAR), calendar.get(Calendar.MONTH),
-                        calendar.get(Calendar.DAY_OF_MONTH)).show();
+            public void onFocusChange(View v, boolean hasFocus) {
+
+                if (hasFocus) {
+                    new DatePickerDialog(ajout_facture.this, date, calendar
+                            .get(Calendar.YEAR), calendar.get(Calendar.MONTH),
+                            calendar.get(Calendar.DAY_OF_MONTH)).show();
+
+                }
             }
         });
 
 
 
         // Ajout du bouton Capture
-        FloatingActionButton capture = (FloatingActionButton) findViewById(R.id.capture);
+        Button capture = (Button) findViewById(R.id.addPicture);
         // Get the editText for
         final TextView fichier_image = (TextView) findViewById(R.id.fichier_image);
         // Get the ImageView
@@ -156,20 +163,27 @@ public class ajout_facture extends AppCompatActivity {
         validate.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-            if(Date.getText().toString().trim().length() == 0 || Lieu.getText().toString().trim().length() == 0 || Prix.getText().toString().trim().length() == 0){
-                Toast.makeText(getBaseContext(), "missing information", Toast.LENGTH_LONG).show();
-                return;
+                if(Date.getText().toString().trim().length() == 0 || Lieu.getText().toString().trim().length() == 0 || Prix.getText().toString().trim().length() == 0){
+                    Toast.makeText(getBaseContext(), "missing information", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                else{
+                    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+                    SharedPreferences.Editor editor = prefs.edit();
+                    editor.putString("date", Date.getText().toString()); //InputString: from the EditText
+                    editor.putString("place", Lieu.getText().toString()); //InputString: from the EditText
+                    editor.putFloat("price", Float.parseFloat(Prix.getText().toString())); //InputString: from the EditText
+                    editor.apply();
+                    setResult(RESULT_OK);
+                    finish();
+                }
             }
-            else{
-                SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-                SharedPreferences.Editor editor = prefs.edit();
-                editor.putString("date", Date.getText().toString()); //InputString: from the EditText
-                editor.putString("place", Lieu.getText().toString()); //InputString: from the EditText
-                editor.putFloat("price", Float.parseFloat(Prix.getText().toString())); //InputString: from the EditText
-                editor.apply();
-                setResult(RESULT_OK);
-                finish();
-            }
+        });
+
+        back.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onBackPressed();
             }
         });
 
