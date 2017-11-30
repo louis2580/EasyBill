@@ -13,6 +13,7 @@ import android.util.Log;
 import android.view.ContextMenu;
 import android.view.GestureDetector;
 import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
@@ -461,6 +462,28 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         return billsInFolder;
+    }
+
+    /* Create a menu in the upper right corner */
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater menuInflater = getMenuInflater();
+        menuInflater.inflate(R.menu.main, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch(item.getItemId()) {
+            case R.id.login:
+                //switch another activity
+                Intent login = new Intent(
+                        MainActivity.this, login.class);
+                startActivity(login);
+                return true;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 
 }

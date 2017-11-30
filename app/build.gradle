@@ -9,6 +9,7 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        resConfigs "auto"
     }
     buildTypes {
         release {
@@ -30,6 +31,6 @@ dependencies {
     // Needed to use firebase
     compile 'com.firebaseui:firebase-ui-auth:3.1.0'
     // Required only if Facebook login support is required
-    compile('com.facebook.android:facebook-android-sdk:4.27.0')
+    compile 'com.facebook.android:facebook-login:4.27.0'
 }
 apply plugin: 'com.google.gms.google-services'

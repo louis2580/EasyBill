@@ -28,6 +28,14 @@
             android:label="@string/edit_facture" >
         </activity>
 
+        <activity
+            android:name=".login"
+            android:label="@string/login" >
+        </activity>
+        <meta-data
+            android:name="com.facebook.sdk.ApplicationId"
+            android:value="@string/facebook_application_id" />
+
         <provider
             android:name="android.support.v4.content.FileProvider"
             android:authorities="com.example.android.fileprovider"
