@@ -35,9 +35,11 @@ public class BillAdapter extends ArrayAdapter<Bill> {
         float price = getItem(position).getPrice();
         String place = getItem(position).getPlace();
         String date = getItem(position).getDate();
+        String path = getItem(position).getPath();
+        String folder = getItem(position).getFolder();
 
         // Create the Bill object
-        Bill bill = new Bill(price, place, date);
+        Bill bill = new Bill(price, place, date, path, folder);
 
         LayoutInflater inflater = LayoutInflater.from(mContext);
         convertView = inflater.inflate(mResource, parent, false);

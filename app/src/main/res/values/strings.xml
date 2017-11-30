@@ -5,10 +5,16 @@
     <string name="ajout_facture">Formulaire pour nouvelle facture</string>
     <string name="preferencePlace">com.example.myapp.PREFERENCE_FILE_KEY</string> //
 
-    <string-array name="dossier_names">
-        <item>Toutes les factures</item>
-        <item>Restaurant</item>
-        <item>Loisir</item>
+    <string-array name="folder_names">
+        <item>-</item>
+        <item>Restaurants</item>
+        <item>Loisirs</item>
+        <item>Autres</item>
+    </string-array>
+
+    <string-array name="menu">
+        <item>Modifier</item>
+        <item>Supprimer</item>
     </string-array>
 
     <string-array name="devise_names">

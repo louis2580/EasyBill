@@ -2,5 +2,6 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
     <paths xmlns:android="http://schemas.android.com/apk/res/android">
         <external-path name="my_images" path="Android/data/com.example.easybill.easybillversionvide/files/Pictures" />
+        <external-path name="my_reports" path="Android/data/com.example.easybill.easybillversionvide/files/Reports" />
     </paths>
 </PreferenceScreen>

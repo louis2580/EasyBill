@@ -41,12 +41,13 @@ public class ajout_facture extends AppCompatActivity {
     Spinner spinnerDossier;
     ArrayAdapter<CharSequence> adapterDossier;
 
-    static final int REQUEST_IMAGE_CAPTURE = 1;
     static final int REQUEST_TAKE_PHOTO = 1;
     // The path to the photo
     private String mCurrentPhotoPath;
     // Get the ImageView
     private ImageView ImageCapture;
+    // Image URI
+    private Uri contentUri;
 
     int PHOTO_TAKEN = 1;
     int PHOTO_CANCELLED = -1;
@@ -66,6 +67,10 @@ public class ajout_facture extends AppCompatActivity {
     Calendar calendar = Calendar.getInstance();
     // Date editText
     EditText Date;
+    // Folder
+    Spinner Folder;
+    // path
+    String Path = "N/C";
 
     // Create the File where the photo should go
     File photoFile = null;
@@ -80,6 +85,7 @@ public class ajout_facture extends AppCompatActivity {
         Prix = (EditText) findViewById(R.id.prix);
         Lieu = (EditText) findViewById(R.id.lieu);
         Date = (EditText) findViewById(R.id.date);
+        Folder = (Spinner) findViewById(R.id.spinnerDossier);
         //Ajout du sinner devise
         spinnerDevise = (Spinner) findViewById(R.id.devise);
         adapterDevise = ArrayAdapter.createFromResource(this, R.array.devise_names, android.R.layout.simple_spinner_item);
@@ -98,11 +104,10 @@ public class ajout_facture extends AppCompatActivity {
         });
 
         //Ajout du sinner dossier
-        spinnerDossier = (Spinner) findViewById(R.id.spinnerDossier);
-        adapterDossier = ArrayAdapter.createFromResource(this, R.array.dossier_names, android.R.layout.simple_spinner_item);
+        adapterDossier = ArrayAdapter.createFromResource(this, R.array.folder_names, android.R.layout.simple_spinner_item);
         adapterDossier.setDropDownViewResource(android.R.layout.simple_dropdown_item_1line);
-        spinnerDossier.setAdapter(adapterDossier);
-        spinnerDossier.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+        Folder.setAdapter(adapterDossier);
+        Folder.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 Toast.makeText(getBaseContext(), parent.getItemAtPosition(position)+"is selected", Toast.LENGTH_LONG).show();
@@ -149,7 +154,7 @@ public class ajout_facture extends AppCompatActivity {
         // Get the editText for
         final TextView fichier_image = (TextView) findViewById(R.id.fichier_image);
         // Get the ImageView
-        // ImageCapture = (ImageView) findViewById(R.id.ImageCapture);
+        ImageCapture = (ImageView) findViewById(R.id.ImageCapture);
         /* Listener */
         capture.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -163,8 +168,15 @@ public class ajout_facture extends AppCompatActivity {
         validate.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(Date.getText().toString().trim().length() == 0 || Lieu.getText().toString().trim().length() == 0 || Prix.getText().toString().trim().length() == 0){
-                    Toast.makeText(getBaseContext(), "missing information", Toast.LENGTH_LONG).show();
+                if(Date.getText().toString().trim().length() == 0 || Lieu.getText().toString().trim().length() == 0
+                        || Prix.getText().toString().trim().length() == 0 || Folder.getSelectedItem().toString().equals("-")){
+                    if (Folder.getSelectedItem().toString().equals("-"))
+                    {
+                        Toast.makeText(getBaseContext(), "Sélectionner un dossier", Toast.LENGTH_LONG).show();
+                    } else
+                    {
+                        Toast.makeText(getBaseContext(), "Informations manquantes", Toast.LENGTH_LONG).show();
+                    }
                     return;
                 }
                 else{
@@ -173,6 +185,8 @@ public class ajout_facture extends AppCompatActivity {
                     editor.putString("date", Date.getText().toString()); //InputString: from the EditText
                     editor.putString("place", Lieu.getText().toString()); //InputString: from the EditText
                     editor.putFloat("price", Float.parseFloat(Prix.getText().toString())); //InputString: from the EditText
+                    editor.putString("folder", Folder.getSelectedItem().toString()); //InputString: from the Spinner
+                    editor.putString("path", Path); //InputString: from the String
                     editor.apply();
                     setResult(RESULT_OK);
                     finish();
@@ -199,13 +213,14 @@ public class ajout_facture extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
-            if (data != null) {
-                Uri uri = data.getData();
-                ImageCapture.setImageURI(uri);
-            /*Bundle extras = data.getExtras();
-            Bitmap imageBitmap = (Bitmap) extras.get("data");
-            ImageCapture.setImageBitmap(imageBitmap);*/
+        if (requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK) {
+            if (contentUri != null) {
+                contentUri = Uri.fromFile(new File(mCurrentPhotoPath));
+
+                Toast.makeText(getBaseContext(), "uri : " + contentUri.getPath(), Toast.LENGTH_LONG).show();
+                ImageCapture.setImageURI(contentUri);
+                Path = mCurrentPhotoPath.toString();
+                Toast.makeText(getBaseContext(), "path : " + Path, Toast.LENGTH_LONG).show();
             }
         }
     }
@@ -264,7 +279,7 @@ public class ajout_facture extends AppCompatActivity {
     public void galleryAddPic(Context context) {
         Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
         File f = new File(mCurrentPhotoPath);
-        Uri contentUri = Uri.fromFile(f);
+        contentUri = Uri.fromFile(f);
         mediaScanIntent.setData(contentUri);
         context.sendBroadcast(mediaScanIntent);
     }

@@ -1,5 +1,7 @@
 package com.example.easybill.easybillversionvide;
 
+import java.util.ArrayList;
+
 /**
  * Created by louis on 21/11/2017.
  */
@@ -9,11 +11,23 @@ public class Bill {
     private float price;
     private String place;
     private String date;
+    private String path;
+    private String folder;
 
-    public Bill(float price, String place, String date) {
+    public Bill(float price, String place, String date, String folder) {
         this.price = price;
         this.place = place;
         this.date = date;
+        this.folder = folder;
+        this.path = "N/C";
+    }
+
+    public Bill(float price, String place, String date, String folder, String path) {
+        this.price = price;
+        this.place = place;
+        this.date = date;
+        this.folder = folder;
+        this.path = path;
     }
 
     public float getPrice() {
@@ -39,4 +53,16 @@ public class Bill {
     public void setDate(String date) {
         this.date = date;
     }
+
+    public String getPath() {
+        return path;
+    }
+
+    public void setPath(String path) {
+        this.path = path;
+    }
+
+    public String getFolder() { return folder; }
+
+    public void setFolder(String folder) { this.folder = folder; }
 }
