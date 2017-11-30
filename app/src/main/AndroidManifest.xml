@@ -12,7 +12,6 @@
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -23,6 +22,10 @@
         <activity
             android:name=".ajout_facture"
             android:label="@string/ajout_facture" >
+        </activity>
+        <activity
+            android:name=".edit_bill"
+            android:label="@string/edit_facture" >
         </activity>
 
         <provider

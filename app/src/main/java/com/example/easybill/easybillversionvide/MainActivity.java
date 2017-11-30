@@ -1,5 +1,8 @@
 package com.example.easybill.easybillversionvide;
 
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.os.Environment;
 import android.preference.PreferenceManager;
@@ -38,6 +41,8 @@ import java.util.Vector;
 public class MainActivity extends AppCompatActivity {
 
     static int ADD_FACTURE = 10;
+    static int UPDATE_FACTURE = 20;
+
     private GestureDetectorCompat gestureDetectorCompat;
 
     private String reportFile = "report.txt";
@@ -107,6 +112,47 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        spinnerFolder.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                AlertDialog.Builder alert = new AlertDialog.Builder(parent.getContext());
+                alert.setTitle("Attention !!");
+                alert.setMessage("Supprimer définitivement ce dossier ? \nCette action est irréversible." +
+                        " Vous pouvez conserver les factures de ce dossier. Elles seront déplacées" +
+                        " dans le dossier 'Autres'.");
+
+                alert.setPositiveButton("OUI, avec TOUTES ses factures", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // DELETE THE FOLDER AND ALL THE BILLS IN IT
+
+                        dialog.dismiss();
+                    }
+                });
+
+                alert.setNeutralButton("OUI, mais conserver les factures", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // DELETE THE FOLDER but keep the bills in 'Autres'
+
+                        dialog.dismiss();
+                    }
+                });
+
+                alert.setNegativeButton("NON, tout conserver", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // Doesn't do anything
+                        dialog.dismiss();
+                    }
+                });
+
+                alert.show();
+
+                return true;
+            }
+        });
+
         ///////////////////////////////////////////////////////////////////////////
         // When clicking the floating Add button
         AjouterFacture.setOnClickListener(new View.OnClickListener() {
@@ -165,7 +211,20 @@ public class MainActivity extends AppCompatActivity {
         switch (menuItemName)
         {
             case "Modifier":
-                // TO DO : Edit script!
+
+                SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putString("date", listItem.getDate()); //InputString: from the EditText
+                editor.putString("place", listItem.getPlace()); //InputString: from the EditText
+                editor.putFloat("price", listItem.getPrice()); //InputString: from the EditText
+                editor.putString("folder", listItem.getFolder()); //InputString: from the Spinner
+                editor.putInt("billID", info.position); //InputString: Bill's id
+                editor.apply();
+                // switch to edit_bill activity
+                Intent edit_bill = new Intent(
+                        MainActivity.this, edit_bill.class);
+                startActivityForResult(edit_bill, UPDATE_FACTURE);
+
                 break;
             case "Supprimer":
                 // Remove the Bill and refresh the View
@@ -229,6 +288,7 @@ public class MainActivity extends AppCompatActivity {
     ////////////////////////////////////////////////////////////////////////////
     /* Activity result:
         ADD_FACTURE : add a Bill to 'bills' and update the report file
+        UPDATE_FACTURE : update a Bill
      */
 
     @Override
@@ -245,6 +305,30 @@ public class MainActivity extends AppCompatActivity {
 
                 Bill newBill = new Bill(price_string, place_string, date_string, folder_string, path_string);
                 bills.add(newBill);
+                billAdapter = new BillAdapter(this, R.layout.liste_facture, bills);
+                billList.setAdapter(billAdapter);
+                try {
+                    CreateReport(reportFile);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        if (requestCode == UPDATE_FACTURE)
+        {
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+            if(resultCode == RESULT_OK) {
+                String date_string = prefs.getString("date", "N/C"); //no id: default value
+                String place_string = prefs.getString("place", "N/C"); //no id: default value
+                float price_float = prefs.getFloat("price", 0); //no id: default value
+                String folder_string = prefs.getString("folder", "Autres"); //no id: default value
+                int billID = prefs.getInt("billID", -1); //no id: default value
+
+                bills.get(billID).setDate(date_string);
+                bills.get(billID).setPlace(place_string);
+                bills.get(billID).setPrice(price_float);
+                bills.get(billID).setFolder(folder_string);
                 billAdapter = new BillAdapter(this, R.layout.liste_facture, bills);
                 billList.setAdapter(billAdapter);
                 try {

@@ -7,31 +7,32 @@
     android:layout_height="match_parent">
 
     <Button
-        android:id="@+id/validate"
+        android:id="@+id/editValidate"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
-        android:text="Validate"
-        app:layout_constraintBottom_toBottomOf="@+id/linearLayout"
-        app:layout_constraintEnd_toEndOf="@+id/linearLayout"
+        android:text="Valider"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
     <LinearLayout
-        android:id="@+id/linearLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        tools:layout_editor_absoluteX="0dp"
+        tools:layout_editor_absoluteY="0dp">
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="60dp"
             android:orientation="horizontal"
             android:weightSum="9">
 
             <Button
-                android:id="@+id/backAddBill"
+                android:id="@+id/backEditBill"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="4"
@@ -41,7 +42,7 @@
             <TextView
                 android:id="@+id/dossier"
                 android:layout_width="match_parent"
-                android:layout_height="60dp"
+                android:layout_height="match_parent"
                 android:layout_alignParentLeft="true"
                 android:layout_weight="3"
                 android:gravity="center_vertical|center"
@@ -52,7 +53,7 @@
                 app:layout_constraintStart_toStartOf="parent"></TextView>
 
             <Spinner
-                android:id="@+id/spinnerDossier"
+                android:id="@+id/editSpinnerDossier"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_alignParentRight="true"
@@ -65,95 +66,69 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="60dp"
             android:orientation="horizontal">
-
-            <EditText
-                android:id="@+id/prix"
-                android:layout_width="wrap_content"
-                android:layout_height="60dp"
-                android:layout_weight="1"
-                android:ems="10"
-                android:hint="Prix Total"
-                android:inputType="numberDecimal"
-                android:textColorLink="@color/colorPrimary" />
-
-            <Spinner
-                android:id="@+id/devise"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_weight="1" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <EditText
-                android:id="@+id/lieu"
-                android:layout_width="wrap_content"
-                android:layout_height="60dp"
-                android:layout_weight="1"
-                android:ems="10"
-                android:hint="Lieu"
-                android:inputType="textPersonName"
-                android:textColorLink="@color/colorPrimary" />
-
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <EditText
-                android:id="@+id/date"
-                android:layout_width="wrap_content"
-                android:layout_height="60dp"
-                android:layout_weight="1"
-                android:ems="10"
-                android:hint="Date"
-                android:inputType="date"
-                android:textColorLink="@color/colorPrimary" />
-
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:weightSum="6">
-
-            <Button
-                android:id="@+id/addPicture"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_weight="5"
-                android:background="@android:drawable/ic_input_get"
-                android:backgroundTint="@color/com_facebook_button_background_color_focused_disabled"
-                android:textColorLink="@color/colorPrimary" />
 
             <TextView
-                android:id="@+id/fichier_image"
-                android:layout_width="match_parent"
-                android:layout_height="60dp"
-                android:layout_alignParentLeft="true"
+                android:id="@+id/Prix"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Prendre une photo"
-                android:textColorLink="@color/colorPrimary"
-                app:layout_constraintStart_toStartOf="parent"></TextView>
+                android:text="Prix :" />
 
-
+            <EditText
+                android:id="@+id/editPrice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ems="10"
+                android:inputType="numberDecimal"
+                android:text="0.0" />
         </LinearLayout>
 
-        <ImageView
-            android:id="@+id/ImageCapture"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_marginBottom="@dimen/cardview_default_elevation"
-            android:layout_marginTop="@dimen/cardview_default_elevation"
-            app:srcCompat="@drawable/com_facebook_auth_dialog_header_background" />
+            android:layout_height="60dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/Lieu"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Lieu :" />
+
+            <EditText
+                android:id="@+id/editPlace"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ems="10"
+                android:inputType="textPersonName"
+                android:text="N/C" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/Date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Date :" />
+
+            <EditText
+                android:id="@+id/editDate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ems="10"
+                android:inputType="date"
+                android:text="N/C" />
+        </LinearLayout>
 
     </LinearLayout>
 

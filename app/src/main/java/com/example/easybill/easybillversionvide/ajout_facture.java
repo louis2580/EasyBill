@@ -35,10 +35,8 @@ import java.util.Date;
  */
 
 public class ajout_facture extends AppCompatActivity {
-    Spinner spinnerDevise;
-    ArrayAdapter<CharSequence> adapterDevise;
 
-    Spinner spinnerDossier;
+    ArrayAdapter<CharSequence> adapterDevise;
     ArrayAdapter<CharSequence> adapterDossier;
 
     static final int REQUEST_TAKE_PHOTO = 1;
@@ -67,8 +65,9 @@ public class ajout_facture extends AppCompatActivity {
     Calendar calendar = Calendar.getInstance();
     // Date editText
     EditText Date;
-    // Folder
+    // Folder and currency spinners
     Spinner Folder;
+    Spinner spinnerDevise;
     // path
     String Path = "N/C";
 
