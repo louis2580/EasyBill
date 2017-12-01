@@ -30,6 +30,8 @@ import java.io.IOException;
 import java.util.Calendar;
 import java.util.Date;
 
+import static com.example.easybill.easybillversionvide.MainActivity.FOLDERS;
+
 /**
  * Created by Apero on 18/11/2017.
  */
@@ -37,7 +39,7 @@ import java.util.Date;
 public class ajout_facture extends AppCompatActivity {
 
     ArrayAdapter<CharSequence> adapterDevise;
-    ArrayAdapter<CharSequence> adapterDossier;
+    ArrayAdapter<String> adapterDossier;
 
     static final int REQUEST_TAKE_PHOTO = 1;
     // The path to the photo
@@ -46,12 +48,6 @@ public class ajout_facture extends AppCompatActivity {
     private ImageView ImageCapture;
     // Image URI
     private Uri contentUri;
-
-    int PHOTO_TAKEN = 1;
-    int PHOTO_CANCELLED = -1;
-    int PHOTO_WAITING = 2;
-
-    int isPhotoTaken = PHOTO_WAITING;
 
     // Get the button validate
     Button validate;
@@ -102,8 +98,8 @@ public class ajout_facture extends AppCompatActivity {
             }
         });
 
-        //Ajout du sinner dossier
-        adapterDossier = ArrayAdapter.createFromResource(this, R.array.folder_names, android.R.layout.simple_spinner_item);
+        //Ajout du spinner dossier
+        adapterDossier = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, FOLDERS);
         adapterDossier.setDropDownViewResource(android.R.layout.simple_dropdown_item_1line);
         Folder.setAdapter(adapterDossier);
         Folder.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {

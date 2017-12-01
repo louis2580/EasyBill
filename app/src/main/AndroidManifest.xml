@@ -32,6 +32,10 @@
             android:name=".login"
             android:label="@string/login" >
         </activity>
+        <activity
+            android:name=".add_folder"
+            android:label="@string/addFolder" >
+        </activity>
         <meta-data
             android:name="com.facebook.sdk.ApplicationId"
             android:value="@string/facebook_application_id" />

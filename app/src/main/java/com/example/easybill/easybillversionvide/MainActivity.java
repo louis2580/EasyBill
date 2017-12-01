@@ -19,7 +19,9 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.BaseAdapter;
 import android.widget.Button;
+import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.Toast;
@@ -37,23 +39,28 @@ import java.lang.reflect.Array;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Vector;
 
 public class MainActivity extends AppCompatActivity {
 
+    static ArrayList<String> FOLDERS = new ArrayList<String>();
     static int ADD_FACTURE = 10;
     static int UPDATE_FACTURE = 20;
 
     private GestureDetectorCompat gestureDetectorCompat;
-
     private String reportFile = "report.txt";
 
     Spinner spinnerFolder;
-    ArrayAdapter<CharSequence> adapter;
+    ArrayAdapter<String> adapter;
 
     ListView billList;
     ArrayList<Bill> bills;
     BillAdapter billAdapter;
+
+    FloatingActionButton AjouterFacture;
+    Button newFolder;
+    Button createReport;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,9 +69,11 @@ public class MainActivity extends AppCompatActivity {
 
         SimpleDateFormat format1 = new SimpleDateFormat("yyyy-MM-dd");
 
-        // Get the button
-        FloatingActionButton AjouterFacture =(FloatingActionButton) findViewById(R.id.AjouterFacture);
-        Button createReport = findViewById(R.id.createReport);
+        // Get the buttons
+        AjouterFacture = (FloatingActionButton) findViewById(R.id.AjouterFacture);
+        createReport = findViewById(R.id.createReport);
+        newFolder = findViewById(R.id.newFolder);
+
         spinnerFolder = (Spinner) findViewById(R.id.spinnerDossier);
         billList = findViewById(R.id.billList);
         bills = new ArrayList<Bill>();
@@ -81,7 +90,14 @@ public class MainActivity extends AppCompatActivity {
         billAdapter = new BillAdapter(this, R.layout.liste_facture, bills);
         billList.setAdapter(billAdapter);
 
-        adapter = ArrayAdapter.createFromResource(this, R.array.folder_names, android.R.layout.simple_spinner_item);
+        FOLDERS.add("-");
+        FOLDERS.addAll(getAllFolders());
+        if (!FOLDERS.contains("Autres"))
+        {
+            FOLDERS.add("Autres");
+        }
+        Collections.sort(FOLDERS);
+        adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, FOLDERS);
         adapter.setDropDownViewResource(android.R.layout.simple_dropdown_item_1line);
         registerForContextMenu(billList);
         ////////////////////////////////////////////////////////////////////////////
@@ -108,51 +124,22 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onNothingSelected(AdapterView<?> adapterView) {
+            public void onNothingSelected(AdapterView<?> parent) {
 
             }
         });
 
-        spinnerFolder.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+        ///////////////////////////////////////////////////////////////////////////
+        // When clicking the Add Folder button
+        newFolder.setOnClickListener(new View.OnClickListener() {
             @Override
-            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
-                AlertDialog.Builder alert = new AlertDialog.Builder(parent.getContext());
-                alert.setTitle("Attention !!");
-                alert.setMessage("Supprimer définitivement ce dossier ? \nCette action est irréversible." +
-                        " Vous pouvez conserver les factures de ce dossier. Elles seront déplacées" +
-                        " dans le dossier 'Autres'.");
-
-                alert.setPositiveButton("OUI, avec TOUTES ses factures", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        // DELETE THE FOLDER AND ALL THE BILLS IN IT
-
-                        dialog.dismiss();
-                    }
-                });
-
-                alert.setNeutralButton("OUI, mais conserver les factures", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        // DELETE THE FOLDER but keep the bills in 'Autres'
-
-                        dialog.dismiss();
-                    }
-                });
-
-                alert.setNegativeButton("NON, tout conserver", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        // Doesn't do anything
-                        dialog.dismiss();
-                    }
-                });
-
-                alert.show();
-
-                return true;
+            public void onClick(View v) {
+                //switch to another activity
+                Intent addFolder = new Intent(MainActivity.this, add_folder.class);
+                startActivity(addFolder);
             }
         });
+
 
         ///////////////////////////////////////////////////////////////////////////
         // When clicking the floating Add button
@@ -472,25 +459,127 @@ public class MainActivity extends AppCompatActivity {
         return super.onCreateOptionsMenu(menu);
     }
 
+    /////////////////////////////////////////////////////
+    // When selecting an option in the menu
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch(item.getItemId()) {
+            // Log In
             case R.id.login:
-                //switch another activity
-                Intent login = new Intent(
-                        MainActivity.this, login.class);
+                //switch to another activity
+                Intent login = new Intent(MainActivity.this, login.class);
                 startActivity(login);
                 return true;
+
+            // Add a folder
+            case R.id.addFolder:
+                //switch to another activity
+                Intent addFolder = new Intent(MainActivity.this, add_folder.class);
+                startActivity(addFolder);
+                return true;
+
+            // Remove a folder
+            case R.id.removeFolder:
+                if (!spinnerFolder.getSelectedItem().toString().equals("-")) {
+                    AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
+                    alert.setTitle("Attention !!");
+                    alert.setMessage("Supprimer définitivement le dossier " + spinnerFolder.getSelectedItem().toString() +
+                            " ? \nCette action est irréversible." +
+                            " Vous pouvez conserver les factures de ce dossier. Elles seront déplacées" +
+                            " dans le dossier 'Autres'.");
+
+                    alert.setPositiveButton("OUI, avec TOUTES ses factures", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            // DELETE THE FOLDER AND ALL THE BILLS IN IT
+                            showLastChanceDialog(spinnerFolder.getSelectedItem().toString());
+                        }
+                    });
+
+                    alert.setNegativeButton("OUI, mais conserver les factures", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            // DELETE THE FOLDER but keep the bills in 'Autres'
+                            for (Bill bill : bills)
+                            {
+                                if (bill.getFolder().equals(spinnerFolder.getSelectedItem().toString()))
+                                {
+                                    bill.setFolder("Autres");
+                                }
+                            }
+                            FOLDERS.remove(spinnerFolder.getSelectedItem().toString());
+                            dialog.dismiss();
+                        }
+                    });
+
+                    alert.setNeutralButton("NON, tout conserver", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            // Doesn't do anything
+                            dialog.dismiss();
+                        }
+                    });
+
+                    alert.show();
+                } else
+                {
+                    Toast.makeText(getBaseContext(), "Sélectionner un dossier pour effectuer cette action", Toast.LENGTH_LONG).show();
+                }
+
+                return true;
+
+
         }
 
         return super.onOptionsItemSelected(item);
     }
 
+    private void showLastChanceDialog(final String folderToDelete)
+    {
+        final AlertDialog.Builder lastAlert = new AlertDialog.Builder(MainActivity.this);
+        lastAlert.setTitle("Dernière chance...");
+        lastAlert.setMessage("Le dossier " + spinnerFolder.getSelectedItem().toString() +
+                " va être supprimer.");
+
+        lastAlert.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                // DELETE THE FOLDER AND ALL THE BILLS IN IT
+                for (int i = 0; i < bills.size(); i++)
+                {
+                    if (bills.get(i).getFolder().equals(folderToDelete))
+                    {
+                        bills.remove(i);
+                    }
+                }
+                FOLDERS.remove(folderToDelete);
+                dialog.dismiss();
+            }
+        });
+
+        lastAlert.setNegativeButton("Annuler", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                // DELETE THE FOLDER but keep the bills in 'Autres'
+
+                dialog.dismiss();
+            }
+        });
+
+        lastAlert.show();
+    }
+
+    /////////////////////////////////////////////////////////////////
+    // Get all the folders
+    public ArrayList<String> getAllFolders ()
+    {
+        ArrayList<String> allFolders = new ArrayList<String>();
+        for(Bill bill : bills)
+        {
+            // Add the folder if it's not already added
+            if (!allFolders.contains(bill.getFolder())) allFolders.add(bill.getFolder());
+        }
+        return allFolders;
+    }
+
 }
-
-
-// A FAIRE:
-/*
-        - implémenter la fonction modifier des Bill (cf manifest pour créer nouvelle activité)
-        - Implémenter bouton ajouter dossier
- */

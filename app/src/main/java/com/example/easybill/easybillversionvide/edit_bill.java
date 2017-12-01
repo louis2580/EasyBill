@@ -5,23 +5,18 @@ import android.app.DatePickerDialog;
 import android.content.SharedPreferences;
 import android.icu.text.SimpleDateFormat;
 import android.os.Bundle;
-import android.os.PersistableBundle;
 import android.preference.PreferenceManager;
-import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
-import android.view.textclassifier.TextClassification;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.Spinner;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import java.util.ArrayList;
 import java.util.Calendar;
+import static com.example.easybill.easybillversionvide.MainActivity.FOLDERS;
 
 /**
  * Created by louis on 30/11/2017.
@@ -43,7 +38,7 @@ public class edit_bill extends AppCompatActivity {
     EditText Date;
     // Folder
     Spinner Folder;
-    ArrayAdapter<CharSequence> adapterDossier;
+    ArrayAdapter<String> adapterDossier;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -67,7 +62,7 @@ public class edit_bill extends AppCompatActivity {
         final int billID = prefs.getInt("billID", -1); //no id: default value
 
         // Folder spinner
-        adapterDossier = ArrayAdapter.createFromResource(this, R.array.folder_names, android.R.layout.simple_spinner_item);
+        adapterDossier = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, FOLDERS);
         int pos = adapterDossier.getPosition(folder_string);
         adapterDossier.setDropDownViewResource(android.R.layout.simple_dropdown_item_1line);
         Folder.setAdapter(adapterDossier);

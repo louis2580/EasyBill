@@ -7,8 +7,11 @@
         app:showAsAction="never"
         android:title="Log in" />
     <item
-        android:id="@+id/about"
-        app:showAsAction="never"
-        android:title="About" />
+        android:id="@+id/addFolder"
+        android:title="Nouveau dossier"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/removeFolder"
+        android:title="Supprimer dossier" />
 
 </menu>
