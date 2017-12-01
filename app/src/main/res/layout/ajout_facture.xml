@@ -75,7 +75,7 @@
                 android:ems="10"
                 android:hint="Prix Total"
                 android:inputType="numberDecimal"
-                android:maxEms="8"
+                android:maxLength="8"
                 android:textColorLink="@color/colorPrimary" />
 
             <Spinner
@@ -98,7 +98,7 @@
                 android:ems="10"
                 android:hint="Lieu"
                 android:inputType="textPersonName"
-                android:maxEms="35"
+                android:maxLength="30"
                 android:textColorLink="@color/colorPrimary" />
 
         </LinearLayout>
