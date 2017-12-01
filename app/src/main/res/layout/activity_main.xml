@@ -1,11 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<android.support.v4.widget.DrawerLayou xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+	android:id="@+id/drawer"
     tools:context="com.example.easybill.easybillversionvide.MainActivity">
 
+	<android.support.design.widget.NavigationView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:menu="@menu/nav_menu"
+        android:layout_gravity="start"
+        >
+		</android.support.design.widget.NavigationView>
+	
+	<android.support.constraint.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+	
     <Button
         android:id="@+id/createReport"
         android:layout_width="wrap_content"
@@ -76,5 +89,6 @@
             tools:layout_editor_absoluteX="10dp"
             tools:layout_editor_absoluteY="6dp" />
     </LinearLayout>
+	</android.support.constraint.ConstraintLayout>
 
-</android.support.constraint.ConstraintLayout>
+</android.support.v4.widget.DrawerLayou>

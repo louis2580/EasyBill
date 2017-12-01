@@ -43,6 +43,10 @@ import java.util.Collections;
 import java.util.Vector;
 
 public class MainActivity extends AppCompatActivity {
+	
+	//Drawer
+    private DrawerLayout mDrawerLayout;
+    private ActionBarDrawerToggle mToogle;
 
     static ArrayList<String> FOLDERS = new ArrayList<String>();
     static int ADD_FACTURE = 10;
@@ -66,6 +70,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+		
+		mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer);
+        mToogle=new ActionBarDrawerToggle(this, mDrawerLayout, R.string.open, R.string.close);
+        mDrawerLayout.addDrawerListener(mToogle);
+        mToogle.syncState();
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         SimpleDateFormat format1 = new SimpleDateFormat("yyyy-MM-dd");
 
@@ -463,6 +473,9 @@ public class MainActivity extends AppCompatActivity {
     // When selecting an option in the menu
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+		 if (mToogle.onOptionsItemSelected(item)){
+            return true;
+        }
         switch(item.getItemId()) {
             // Log In
             case R.id.login:

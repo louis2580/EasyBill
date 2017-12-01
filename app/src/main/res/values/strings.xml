@@ -4,6 +4,8 @@
     <string name="second_activity">Multi portefeuille</string>
     <string name="ajout_facture">Nouvelle facture</string>
     <string name="edit_facture">Modifier la facture</string>
+	<string name="open">Open</string>
+    <string name="close">Close</string>
 
     <string name="login">Identification</string>
     <string name="addFolder">Nouveau dossier</string>
