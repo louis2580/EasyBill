@@ -8,6 +8,8 @@ import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.view.GestureDetectorCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.ContextMenu;
@@ -43,10 +45,6 @@ import java.util.Collections;
 import java.util.Vector;
 
 public class MainActivity extends AppCompatActivity {
-	
-	//Drawer
-    private DrawerLayout mDrawerLayout;
-    private ActionBarDrawerToggle mToogle;
 
     static ArrayList<String> FOLDERS = new ArrayList<String>();
     static int ADD_FACTURE = 10;
@@ -54,6 +52,12 @@ public class MainActivity extends AppCompatActivity {
 
     private GestureDetectorCompat gestureDetectorCompat;
     private String reportFile = "report.txt";
+
+    //Drawer
+    private DrawerLayout mDrawerLayout;
+    private ActionBarDrawerToggle mToogle;
+
+
 
     Spinner spinnerFolder;
     ArrayAdapter<String> adapter;
@@ -64,24 +68,23 @@ public class MainActivity extends AppCompatActivity {
 
     FloatingActionButton AjouterFacture;
     Button newFolder;
-    Button createReport;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-		
-		mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer);
+
+        SimpleDateFormat format1 = new SimpleDateFormat("yyyy-MM-dd");
+
+        // Drawer
+        mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer);
         mToogle=new ActionBarDrawerToggle(this, mDrawerLayout, R.string.open, R.string.close);
         mDrawerLayout.addDrawerListener(mToogle);
         mToogle.syncState();
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
-        SimpleDateFormat format1 = new SimpleDateFormat("yyyy-MM-dd");
-
         // Get the buttons
         AjouterFacture = (FloatingActionButton) findViewById(R.id.AjouterFacture);
-        createReport = findViewById(R.id.createReport);
         newFolder = findViewById(R.id.newFolder);
 
         spinnerFolder = (Spinner) findViewById(R.id.spinnerDossier);
@@ -121,16 +124,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 Toast.makeText(getBaseContext(), parent.getSelectedItem().toString()+" is selected", Toast.LENGTH_LONG).show();
-                if (!parent.getSelectedItem().toString().equals("-")) // ~.getItemAtPosition(position)
-                {
-                    ArrayList<Bill> folderArray = getBillsInFolder(parent.getItemAtPosition(position).toString());
-                    billAdapter = new BillAdapter(parent.getContext(), R.layout.liste_facture, folderArray);
-                    billList.setAdapter(billAdapter);
-                } else
-                {
-                    billAdapter = new BillAdapter(parent.getContext(), R.layout.liste_facture, bills);
-                    billList.setAdapter(billAdapter);
-                }
+                changeFolder(parent.getSelectedItem().toString());
             }
 
             @Override
@@ -163,18 +157,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        ////////////////////////////////////////////////////////////////////////////
-        createReport.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-                try {
-                    CreateReport(reportFile);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
 
         gestureDetectorCompat = new GestureDetectorCompat(this, new MyGestureListener());
     }
@@ -228,16 +210,7 @@ public class MainActivity extends AppCompatActivity {
                 // Remove the Bill and refresh the View
                 bills.remove(listItem);
                 String currentFolder = spinnerFolder.getSelectedItem().toString();
-                if (!currentFolder.equals("-")) // ~.getItemAtPosition(position)
-                {
-                    ArrayList<Bill> folderArray = getBillsInFolder(spinnerFolder.getSelectedItem().toString());
-                    billAdapter = new BillAdapter(spinnerFolder.getContext(), R.layout.liste_facture, folderArray);
-                    billList.setAdapter(billAdapter);
-                } else
-                {
-                    billAdapter = new BillAdapter(spinnerFolder.getContext(), R.layout.liste_facture, bills);
-                    billList.setAdapter(billAdapter);
-                }
+                changeFolder(currentFolder);
                 break;
 
             default:
@@ -327,8 +300,9 @@ public class MainActivity extends AppCompatActivity {
                 bills.get(billID).setPlace(place_string);
                 bills.get(billID).setPrice(price_float);
                 bills.get(billID).setFolder(folder_string);
-                billAdapter = new BillAdapter(this, R.layout.liste_facture, bills);
-                billList.setAdapter(billAdapter);
+
+                changeFolder("-");
+                spinnerFolder.setSelection(0);
                 try {
                     CreateReport(reportFile);
                 } catch (IOException e) {
@@ -461,6 +435,21 @@ public class MainActivity extends AppCompatActivity {
         return billsInFolder;
     }
 
+    public void changeFolder(String folder)
+    {
+
+        if (!folder.equals("-"))
+        {
+            ArrayList<Bill> folderArray = getBillsInFolder(folder);
+            billAdapter = new BillAdapter(this, R.layout.liste_facture, folderArray);
+            billList.setAdapter(billAdapter);
+        } else
+        {
+            billAdapter = new BillAdapter(this, R.layout.liste_facture, bills);
+            billList.setAdapter(billAdapter);
+        }
+    }
+
     /* Create a menu in the upper right corner */
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -473,10 +462,20 @@ public class MainActivity extends AppCompatActivity {
     // When selecting an option in the menu
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-		 if (mToogle.onOptionsItemSelected(item)){
+        if (mToogle.onOptionsItemSelected(item)){
             return true;
         }
         switch(item.getItemId()) {
+
+            case R.id.createReportFile:
+
+                try {
+                    CreateReport(reportFile);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                return true;
+
             // Log In
             case R.id.login:
                 //switch to another activity
@@ -493,7 +492,7 @@ public class MainActivity extends AppCompatActivity {
 
             // Remove a folder
             case R.id.removeFolder:
-                if (!spinnerFolder.getSelectedItem().toString().equals("-")) {
+                if (!(spinnerFolder.getSelectedItem().toString().equals("-") || spinnerFolder.getSelectedItem().toString().equals("Autres"))) {
                     AlertDialog.Builder alert = new AlertDialog.Builder(MainActivity.this);
                     alert.setTitle("Attention !!");
                     alert.setMessage("Supprimer définitivement le dossier " + spinnerFolder.getSelectedItem().toString() +
@@ -521,6 +520,8 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             }
                             FOLDERS.remove(spinnerFolder.getSelectedItem().toString());
+                            changeFolder("-");
+                            spinnerFolder.setSelection(0);
                             dialog.dismiss();
                         }
                     });
@@ -536,7 +537,13 @@ public class MainActivity extends AppCompatActivity {
                     alert.show();
                 } else
                 {
-                    Toast.makeText(getBaseContext(), "Sélectionner un dossier pour effectuer cette action", Toast.LENGTH_LONG).show();
+                    if (spinnerFolder.getSelectedItem().toString().equals("Autres"))
+                    {
+                        Toast.makeText(getBaseContext(), "Le dossier 'Autres' ne peut pas être supprimé.", Toast.LENGTH_LONG).show();
+                    } else
+                    {
+                        Toast.makeText(getBaseContext(), "Sélectionner un dossier pour effectuer cette action", Toast.LENGTH_LONG).show();
+                    }
                 }
 
                 return true;
@@ -566,6 +573,8 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
                 FOLDERS.remove(folderToDelete);
+                changeFolder("-");
+                spinnerFolder.setSelection(0);
                 dialog.dismiss();
             }
         });
