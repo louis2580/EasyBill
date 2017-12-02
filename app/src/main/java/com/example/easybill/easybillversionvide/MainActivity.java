@@ -35,6 +35,10 @@ import android.widget.Toast;
 import android.content.Intent;
 import android.os.Bundle;
 
+import com.firebase.ui.auth.AuthUI;
+import com.firebase.ui.auth.IdpResponse;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -52,6 +56,7 @@ import java.io.OutputStreamWriter;
 import java.lang.reflect.Array;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Map;
@@ -61,22 +66,25 @@ import java.util.Vector;
 
 public class MainActivity extends AppCompatActivity {
 
-    String adresseGmail;
+
     /* Database */
     DatabaseReference databaseBill;
 
     static ArrayList<String> FOLDERS = new ArrayList<String>();
     static int ADD_FACTURE = 10;
     static int UPDATE_FACTURE = 20;
-    static int MAIL = 30;
+    static int RC_SIGN_IN = 30;
+    static int RC_SIGN_OUT = 40;
 
     private GestureDetectorCompat gestureDetectorCompat;
     private String reportFile = "report.txt";
 
-    //Drawer
-    private DrawerLayout mDrawerLayout;
-    private ListView mDrawerList;
-    private ActionBarDrawerToggle mToogle;
+    private FirebaseAuth auth;
+    MenuItem logIn;
+    MenuItem logOut;
+    MenuItem addFolder;
+    MenuItem deleteFolder;
+    MenuItem createReportFile;
 
     Spinner spinnerFolder;
     ArrayAdapter<String> adapter;
@@ -94,34 +102,11 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        SimpleDateFormat format1 = new SimpleDateFormat("yyyy-MM-dd");
-
-        // Drawer
-        mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer);
-        mDrawerList = (ListView) findViewById(R.id.left_drawer);
-
-        //mDrawerList.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, getResources().getStringArray(R.array.menuPanelGauche)));
-
-        mToogle = new ActionBarDrawerToggle(this, mDrawerLayout, R.string.open, R.string.close);
-        mDrawerLayout.addDrawerListener(mToogle);
-        mToogle.syncState();
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-
-        // button On DrawerPanel
-        Button logFacebook = (Button) mDrawerLayout.findViewById(R.id.logFacebook);
-
-        logFacebook.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                //switch to another activity
-                Intent login = new Intent(MainActivity.this, login.class);
-                startActivity(login);
-            }
-        });
-
         // Get the buttons
         AjouterFacture = (FloatingActionButton) findViewById(R.id.AjouterFacture);
         newFolder = findViewById(R.id.newFolder);
+
+        auth = FirebaseAuth.getInstance();
 
         spinnerFolder = (Spinner) findViewById(R.id.spinnerDossier);
         billList = findViewById(R.id.billList);
@@ -137,6 +122,20 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        ////////////////////////////////////////////////////////////////////
+        // checks if a user is already logged
+
+        if (auth.getCurrentUser() == null)
+        {
+            // no one connected
+            AjouterFacture.setEnabled(false);
+            newFolder.setEnabled(false);
+
+        }
+        else
+        {
+            SyncDatabase(auth.getCurrentUser().getUid());
+        }
 
         ///////////////////////////////////////////////////////////////////////////
         // When clicking the floating Add button
@@ -150,89 +149,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        FirebaseDatabase.getInstance().getReference().child("bills").push();
-        databaseBill = FirebaseDatabase.getInstance().getReference().child("bills");
-        databaseBill.addChildEventListener(new ChildEventListener() {
-            @Override
-            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
-
-                bills.add(getBillFromDataSnapshot(dataSnapshot));
-                UpdateBillList();
-            }
-
-            @Override
-            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
-
-                for(Bill bill : bills)
-                {
-                    if (bill.getId().equals(getBillFromDataSnapshot(dataSnapshot).getId()))
-                    {
-                        bills.remove(bill);
-                        break;
-                    }
-                }
-                bills.add(getBillFromDataSnapshot(dataSnapshot));
-                UpdateBillList();
-            }
-
-            @Override
-            public void onChildRemoved(DataSnapshot dataSnapshot) {
-
-                bills.remove(getBillFromDataSnapshot(dataSnapshot));
-                UpdateBillList();
-            }
-
-            @Override
-            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
-
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-
-            }
-        });
-        databaseBill.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                //Get map of users in datasnapshot
-                GetAllBills((Map<String, Object>) dataSnapshot.getValue());
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-
-            }
-        });
-
-        ///////////////////////////////////////////////////////////////////////
-        // folders spinner:
-
-        // Add the 'all folders' option, all the folders and 'Autres' if it doesn't exist
-        FOLDERS.add("-");
-        FOLDERS.addAll(getAllFolders());
-        if (!FOLDERS.contains("Autres")) {
-            FOLDERS.add("Autres");
-        }
-        Collections.sort(FOLDERS);
-        adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, FOLDERS);
-        adapter.setDropDownViewResource(android.R.layout.simple_dropdown_item_1line);
-        registerForContextMenu(billList);
-
-        spinnerFolder.setAdapter(adapter);
-        // When changing the folder to show
-        spinnerFolder.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                Toast.makeText(getBaseContext(), parent.getSelectedItem().toString() + " is selected", Toast.LENGTH_LONG).show();
-                changeFolder(parent.getSelectedItem().toString());
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-
-            }
-        });
 
         /////////////////////////////////////////////////
         gestureDetectorCompat = new GestureDetectorCompat(this, new MyGestureListener());
@@ -256,6 +172,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onContextItemSelected(MenuItem item) {
+        if (auth.getCurrentUser() == null) return true;
         AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
         int menuItemIndex = item.getItemId();
         String[] menuItems = getResources().getStringArray(R.array.menu);
@@ -266,7 +183,6 @@ public class MainActivity extends AppCompatActivity {
         // action depending on what option was chosen
         switch (menuItemName) {
             case "Modifier":
-
                 SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
                 SharedPreferences.Editor editor = prefs.edit();
                 editor.putString("date", listItem.getDate()); //InputString: from the EditText
@@ -341,6 +257,36 @@ public class MainActivity extends AppCompatActivity {
         UPDATE_FACTURE : update a Bill
      */
 
+    /* Create a menu in the upper right corner */
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater menuInflater = getMenuInflater();
+        menuInflater.inflate(R.menu.main, menu);
+
+        logIn = menu.findItem (R.id.logIn);
+        logOut = menu.findItem(R.id.logOut);
+        addFolder = menu.findItem(R.id.addFolder);
+        deleteFolder = menu.findItem(R.id.removeFolder);
+        createReportFile = menu.findItem(R.id.createReportFile);
+
+        if (auth.getCurrentUser() == null)
+        {
+            // no one connected
+            logIn.setEnabled(true);
+            logOut.setEnabled(false);
+            deleteFolder.setEnabled(false);
+            addFolder.setEnabled(false);
+        } else
+        {
+            logIn.setEnabled(false);
+            logOut.setEnabled(true);
+            deleteFolder.setEnabled(true);
+            addFolder.setEnabled(true);
+        }
+
+        return super.onCreateOptionsMenu(menu);
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == ADD_FACTURE) {
@@ -378,18 +324,46 @@ public class MainActivity extends AppCompatActivity {
                 spinnerFolder.setSelection(0);
             }
         }
-        /*
-        if (requestCode == MAIL) {
-            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-            if (resultCode == RESULT_OK) {
-                adresseGmail = prefs.getString("mail", "N/C"); //no id: default value
-                if (adresseGmail != null) {
-                    Toast.makeText(this, adresseGmail, Toast.LENGTH_LONG).show();
-                    Log.d("MAIL", adresseGmail.toString());
-                }
+        if (requestCode == RC_SIGN_IN) {
+            IdpResponse response = IdpResponse.fromResultIntent(data);
+
+            if (resultCode == RESULT_OK){
+                // Successfully signed in
+                FirebaseUser user = auth.getCurrentUser();
+
+                Toast.makeText(getBaseContext(), user.getDisplayName() + " connected as " + user.getEmail(), Toast.LENGTH_LONG).show();
+                logOut.setEnabled(true);
+                logIn.setEnabled(false);
+                AjouterFacture.setEnabled(true);
+                newFolder.setEnabled(true);
+                addFolder.setEnabled(true);
+                deleteFolder.setEnabled(true);
+
+            } else {
+                // Sign in failed, check response for error code
+                // ...
+                Toast.makeText(getBaseContext(), "La connexion a échouée", Toast.LENGTH_LONG).show();
             }
         }
-        */
+
+        if (requestCode == RC_SIGN_OUT)
+        {
+            if (resultCode == RESULT_OK)
+            {
+                Toast.makeText(getBaseContext(), "Vous avez été déconnecté", Toast.LENGTH_LONG).show();
+                logIn.setEnabled(true);
+                logOut.setEnabled(false);
+                AjouterFacture.setEnabled(false);
+                newFolder.setEnabled(false);
+                addFolder.setEnabled(false);
+                deleteFolder.setEnabled(false);
+
+                ////////////////////////////////////////////////////////////////////////
+                // Sign out of firebase
+
+                //databaseBill = null;
+            }
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -461,37 +435,11 @@ public class MainActivity extends AppCompatActivity {
             billList.setAdapter(billAdapter);
         }
     }
-
-    //Dynamically create context Menu
-    /* @Override
-   public boolean onPrepareOptionsMenu(Menu menu) {
-        menu.clear(); //Clear view of previous menu
-        MenuInflater inflater = getMenuInflater();
-        if(navPanelEnable)
-            inflater.inflate(R.menu.nav_menu, menu);
-        else
-            inflater.inflate(R.menu.main, menu);
-        return super.onPrepareOptionsMenu(menu);
-    }*/
-
-    /* Create a menu in the upper right corner */
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater menuInflater = getMenuInflater();
-        menuInflater.inflate(R.menu.main, menu);
-        return super.onCreateOptionsMenu(menu);
-    }
-
-
     /////////////////////////////////////////////////////
     // When selecting an option in the menu
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Toast.makeText(getBaseContext(), "ok" +item.getItemId() + " . " + item.toString() , Toast.LENGTH_LONG).show();
-        if (mToogle.onOptionsItemSelected(item)){
-            return true;
-        }
-
         switch(item.getItemId()) {
 
             case R.id.createReportFile:
@@ -503,12 +451,25 @@ public class MainActivity extends AppCompatActivity {
                 return true;
 
             // Log In
-            case R.id.logGoogle:
+            case R.id.logIn:
                 //switch to another activity
-
-                Intent login = new Intent(MainActivity.this, login.class);
-                startActivityForResult(login, MAIL);
+                startActivityForResult(
+                // Get an instance of AuthUI based on the default app
+                    AuthUI.getInstance().createSignInIntentBuilder().setAvailableProviders(
+                        Arrays.asList(new AuthUI.IdpConfig.Builder(AuthUI.EMAIL_PROVIDER).build(),
+                                new AuthUI.IdpConfig.Builder(AuthUI.GOOGLE_PROVIDER).build(),
+                                new AuthUI.IdpConfig.Builder(AuthUI.FACEBOOK_PROVIDER).build()))
+                        .build(),
+                    RC_SIGN_IN);
                 return true;
+
+            // Log In
+            case R.id.logOut:
+                //switch to another activity
+                Intent logout = new Intent(MainActivity.this, login.class);
+                startActivityForResult(logout, RC_SIGN_OUT);
+                return true;
+
 
             // Add a folder
             case R.id.addFolder:
@@ -542,6 +503,7 @@ public class MainActivity extends AppCompatActivity {
                             for (Bill bill : bills) {
                                 if (bill.getFolder().equals(spinnerFolder.getSelectedItem().toString())) {
                                     bill.setFolder("Autres");
+                                    UpdateBill(bill);
                                 }
                             }
                             FOLDERS.remove(spinnerFolder.getSelectedItem().toString());
@@ -588,6 +550,7 @@ public class MainActivity extends AppCompatActivity {
                 // DELETE THE FOLDER AND ALL THE BILLS IN IT
                 for (int i = 0; i < bills.size(); i++) {
                     if (bills.get(i).getFolder().equals(folderToDelete)) {
+                        DeleteBill(bills.get(i));
                         bills.remove(i);
                     }
                 }
@@ -622,10 +585,6 @@ public class MainActivity extends AppCompatActivity {
         return allFolders;
     }
 
-    public void SetTheDataBase(){
-        databaseBill.setValue("Autres");
-    }
-
     /* Database*/
 
     // Add a Bill to the database
@@ -641,8 +600,6 @@ public class MainActivity extends AppCompatActivity {
 
     // Delete a bill from the database
     public void DeleteBill(Bill bill){
-
-        FirebaseDatabase databaseDeleteBill = FirebaseDatabase.getInstance();
         DatabaseReference myRef = databaseBill.child(bill.getId());
         /*String Id = myRef.getKey();
         myRef.child(Id).removeValue();*/
@@ -653,8 +610,7 @@ public class MainActivity extends AppCompatActivity {
 
     // Update a Bill in the database
     public void UpdateBill(Bill bill){
-        FirebaseDatabase databaseUpdateBill = FirebaseDatabase.getInstance();
-        DatabaseReference myRef = databaseUpdateBill.getReference("bills").child(bill.getId());
+        DatabaseReference myRef = databaseBill.child(bill.getId());
         myRef.setValue(bill);
         Toast.makeText(this, "modified", Toast.LENGTH_LONG).show();
     }
@@ -677,6 +633,10 @@ public class MainActivity extends AppCompatActivity {
                 Bill newBill = new Bill(price, place, date, folder, path);
                 newBill.setId(id);
                 bills.add(newBill);
+                if (!FOLDERS.contains(folder))
+                {
+                    FOLDERS.add(folder);
+                }
             }
         }
         UpdateBillList();
@@ -700,6 +660,93 @@ public class MainActivity extends AppCompatActivity {
 
     public void DeleteFolder(String folder){
         /* Si existe pas, créée un dossier nommé *folder */
+    }
+
+
+    public void SyncDatabase(String userId)
+    {
+        FOLDERS.clear();
+        // Connexion to Firebase
+        Toast.makeText(getBaseContext(), "UID : "+userId, Toast.LENGTH_LONG).show();
+        FirebaseDatabase.getInstance().getReference().child(userId).push();
+        databaseBill = FirebaseDatabase.getInstance().getReference().child(userId);
+        databaseBill.addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+
+                bills.add(getBillFromDataSnapshot(dataSnapshot));
+                UpdateBillList();
+            }
+
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+                for(Bill bill : bills)
+                {
+                    if (bill.getId().equals(getBillFromDataSnapshot(dataSnapshot).getId()))
+                    {
+                        bills.remove(bill);
+                        break;
+                    }
+                }
+                bills.add(getBillFromDataSnapshot(dataSnapshot));
+                UpdateBillList();
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+                bills.remove(getBillFromDataSnapshot(dataSnapshot));
+                UpdateBillList();
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+            }
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+            }
+        });
+        databaseBill.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                //Get map of users in datasnapshot
+                GetAllBills((Map<String, Object>) dataSnapshot.getValue());
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+
+        ///////////////////////////////////////////////////////////////////////
+        // folders spinner:
+
+
+        // Add the 'all folders' option, all the folders and 'Autres' if it doesn't exist
+        FOLDERS.add("-");
+        if (!FOLDERS.contains("Autres")) {
+            FOLDERS.add("Autres");
+        }
+        Collections.sort(FOLDERS);
+        adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, FOLDERS);
+        adapter.setDropDownViewResource(android.R.layout.simple_dropdown_item_1line);
+        registerForContextMenu(billList);
+
+        spinnerFolder.setAdapter(adapter);
+        // When changing the folder to show
+        spinnerFolder.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                Toast.makeText(getBaseContext(), parent.getSelectedItem().toString() + " is selected", Toast.LENGTH_LONG).show();
+                changeFolder(parent.getSelectedItem().toString());
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
+
     }
 
 }

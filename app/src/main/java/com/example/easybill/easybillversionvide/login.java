@@ -9,6 +9,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.firebase.ui.auth.AuthUI;
@@ -29,6 +30,7 @@ public class login extends AppCompatActivity {
 
     private static final int RC_SIGN_IN = 123;
     Button sign_out;
+    Button back;
     private FirebaseAuth auth = FirebaseAuth.getInstance();
     private String userMail;
     private String userPassword;
@@ -40,20 +42,22 @@ public class login extends AppCompatActivity {
         FirebaseAuth auth = FirebaseAuth.getInstance();
 
         sign_out = (Button) findViewById(R.id.sign_out);
+        back = findViewById(R.id.backLogOut);
+        TextView mail = findViewById(R.id.userMail);
+        TextView name = findViewById(R.id.userName);
+        TextView connAs = findViewById(R.id.connectedAs);
 
         if (auth.getCurrentUser() != null) {
             // already signed in
 
             userMail = auth.getCurrentUser().getEmail();
-            Toast.makeText(getBaseContext(), " is connected : "+userPassword, Toast.LENGTH_LONG).show();
 
             sign_out.setEnabled(true);
-
-            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-            SharedPreferences.Editor editor = prefs.edit();
-            editor.putString("mail", auth.getCurrentUser().getEmail().toString()); //InputString: from the EditText
-            editor.apply();
-
+            mail.setEnabled(true);
+            name.setEnabled(true);
+            mail.setText(auth.getCurrentUser().getEmail());
+            name.setText(auth.getCurrentUser().getDisplayName());
+            connAs.setText("Connecté sous : ");
 
            sign_out.setOnClickListener(new View.OnClickListener() {
                @Override
@@ -62,7 +66,7 @@ public class login extends AppCompatActivity {
                    .addOnCompleteListener(new OnCompleteListener<Void>() {
                        @Override
                        public void onComplete(@NonNull Task<Void> task) {
-                           Log.d("AUTH", "USER LOG OUT");
+                           setResult(RESULT_OK);
                            finish();
                        }
                    });
@@ -71,42 +75,20 @@ public class login extends AppCompatActivity {
            });
 
         } else {
-
+            connAs.setText("NON Connecté");
+            mail.setEnabled(false);
+            name.setEnabled(false);
             sign_out.setEnabled(false);
             // not signed in
-            startActivityForResult(
-                    // Get an instance of AuthUI based on the default app
-                    AuthUI.getInstance().createSignInIntentBuilder().setAvailableProviders(
-                            Arrays.asList(new AuthUI.IdpConfig.Builder(AuthUI.EMAIL_PROVIDER).build(),
-                                    new AuthUI.IdpConfig.Builder(AuthUI.GOOGLE_PROVIDER).build(),
-                                    new AuthUI.IdpConfig.Builder(AuthUI.FACEBOOK_PROVIDER).build()))
-                            .build(),
-                    RC_SIGN_IN);
+
         }
-    }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        if (requestCode == RC_SIGN_IN) {
-            IdpResponse response = IdpResponse.fromResultIntent(data);
-
-            Toast.makeText(getBaseContext(), "on est là", Toast.LENGTH_LONG).show();
-
-            if (resultCode == RESULT_OK){
-                // Successfully signed in
-                FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-
-                Toast.makeText(getBaseContext(), user.getDisplayName() + " connected as " + user.getEmail(), Toast.LENGTH_LONG).show();
-                sign_out.setEnabled(true);
-
-            } else {
-                // Sign in failed, check response for error code
-                // ...
-                Log.d("AUTH", "NOT AUTHENTIFICATED");
+        back.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                setResult(RESULT_CANCELED);
+                onBackPressed();
             }
-        }
+        });
     }
-
 }

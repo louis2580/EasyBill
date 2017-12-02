@@ -4,27 +4,20 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
-        android:id="@+id/logFacebook"
-        app:showAsAction="never"
-        android:title="Log FB" />
+        android:id="@+id/logIn"
+        android:title="Connexion" />
 
     <item
-        android:id="@+id/logGoogle"
-        app:showAsAction="never"
-        android:title="Log google" />
-
-    <item
-        android:id="@+id/Calendar"
-        app:showAsAction="never"
-        android:title="Calendar" />
+        android:id="@+id/logOut"
+        android:enabled="false"
+        android:title="Deconnexion" />
 
     <item
         android:id="@+id/createReportFile"
         android:title="Générer un rapport   " />
     <item
         android:id="@+id/addFolder"
-        android:title="Nouveau dossier   "
-        app:showAsAction="never" />
+        android:title="Nouveau dossier   " />
     <item
         android:id="@+id/removeFolder"
         android:title="Supprimer dossier   " />
