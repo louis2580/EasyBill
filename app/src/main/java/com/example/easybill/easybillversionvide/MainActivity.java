@@ -25,10 +25,18 @@ import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.ListAdapter;
 import android.widget.ListView;
+import android.widget.RelativeLayout;
 import android.widget.Spinner;
 import android.widget.Toast;
 import android.content.Intent;
 import android.os.Bundle;
+
+import com.google.firebase.database.ChildEventListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -42,9 +50,13 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Vector;
 
 public class MainActivity extends AppCompatActivity {
+
+    /* Database */
+    DatabaseReference databaseBill;
 
     static ArrayList<String> FOLDERS = new ArrayList<String>();
     static int ADD_FACTURE = 10;
@@ -56,8 +68,6 @@ public class MainActivity extends AppCompatActivity {
     //Drawer
     private DrawerLayout mDrawerLayout;
     private ActionBarDrawerToggle mToogle;
-
-
 
     Spinner spinnerFolder;
     ArrayAdapter<String> adapter;
@@ -83,6 +93,19 @@ public class MainActivity extends AppCompatActivity {
         mToogle.syncState();
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
+        // button On DrawerPanel
+        Button logFacebook = (Button) mDrawerLayout.findViewById(R.id.logFacebook);
+
+        logFacebook.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                //switch to another activity
+                Intent login = new Intent(MainActivity.this, login.class);
+                startActivity(login);
+            }
+        });
+
+
         // Get the buttons
         AjouterFacture = (FloatingActionButton) findViewById(R.id.AjouterFacture);
         newFolder = findViewById(R.id.newFolder);
@@ -91,56 +114,14 @@ public class MainActivity extends AppCompatActivity {
         billList = findViewById(R.id.billList);
         bills = new ArrayList<Bill>();
 
-        try {
-            // Add all the bills in the report to 'bills'
-            GetReport(reportFile);
-        } catch (IOException ioe)
-        {
-            ioe.printStackTrace();
-        }
-
-
-        billAdapter = new BillAdapter(this, R.layout.liste_facture, bills);
-        billList.setAdapter(billAdapter);
-
-        FOLDERS.add("-");
-        FOLDERS.addAll(getAllFolders());
-        if (!FOLDERS.contains("Autres"))
-        {
-            FOLDERS.add("Autres");
-        }
-        Collections.sort(FOLDERS);
-        adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, FOLDERS);
-        adapter.setDropDownViewResource(android.R.layout.simple_dropdown_item_1line);
-        registerForContextMenu(billList);
-        ////////////////////////////////////////////////////////////////////////////
-        // Detect long click on the listView
-
-
-        //////////////////////////////////////////////////////////////////////
-        spinnerFolder.setAdapter(adapter);
-        // When changing the folder to show
-        spinnerFolder.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                Toast.makeText(getBaseContext(), parent.getSelectedItem().toString()+" is selected", Toast.LENGTH_LONG).show();
-                changeFolder(parent.getSelectedItem().toString());
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-
-            }
-        });
-
         ///////////////////////////////////////////////////////////////////////////
         // When clicking the Add Folder button
         newFolder.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //switch to another activity
-                Intent addFolder = new Intent(MainActivity.this, add_folder.class);
-                startActivity(addFolder);
+            //switch to another activity
+            Intent addFolder = new Intent(MainActivity.this, add_folder.class);
+            startActivity(addFolder);
             }
         });
 
@@ -157,9 +138,96 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        FirebaseDatabase.getInstance().getReference().child("bills").push();
+        databaseBill = FirebaseDatabase.getInstance().getReference().child("bills");
+        databaseBill.addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
 
+                bills.add(getBillFromDataSnapshot(dataSnapshot));
+                UpdateBillList();
+            }
+
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+
+                for(Bill bill : bills)
+                {
+                    if (bill.getId().equals(getBillFromDataSnapshot(dataSnapshot).getId()))
+                    {
+                        bills.remove(bill);
+                        break;
+                    }
+                }
+                bills.add(getBillFromDataSnapshot(dataSnapshot));
+                UpdateBillList();
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+
+                bills.remove(getBillFromDataSnapshot(dataSnapshot));
+                UpdateBillList();
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+        databaseBill.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                //Get map of users in datasnapshot
+                GetAllBills((Map<String, Object>) dataSnapshot.getValue());
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+
+        ///////////////////////////////////////////////////////////////////////
+        // folders spinner:
+
+        // Add the 'all folders' option, all the folders and 'Autres' if it doesn't exist
+        FOLDERS.add("-");
+        FOLDERS.addAll(getAllFolders());
+        if (!FOLDERS.contains("Autres"))
+        {
+            FOLDERS.add("Autres");
+        }
+        Collections.sort(FOLDERS);
+        adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, FOLDERS);
+        adapter.setDropDownViewResource(android.R.layout.simple_dropdown_item_1line);
+        registerForContextMenu(billList);
+
+        spinnerFolder.setAdapter(adapter);
+        // When changing the folder to show
+        spinnerFolder.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                Toast.makeText(getBaseContext(), parent.getSelectedItem().toString()+" is selected", Toast.LENGTH_LONG).show();
+                changeFolder(parent.getSelectedItem().toString());
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
+
+        /////////////////////////////////////////////////
         gestureDetectorCompat = new GestureDetectorCompat(this, new MyGestureListener());
     }
+
+
 
     /////////////////////////////////////////////////////////////////////////////
     // Context menu for long click
@@ -208,11 +276,10 @@ public class MainActivity extends AppCompatActivity {
                 break;
             case "Supprimer":
                 // Remove the Bill and refresh the View
-                bills.remove(listItem);
+                DeleteBill(listItem);
                 String currentFolder = spinnerFolder.getSelectedItem().toString();
                 changeFolder(currentFolder);
                 break;
-
             default:
                 break;
         }
@@ -224,6 +291,12 @@ public class MainActivity extends AppCompatActivity {
     public boolean onTouchEvent(MotionEvent event) {
         this.gestureDetectorCompat.onTouchEvent(event);
         return super.onTouchEvent(event);
+    }
+
+    public void UpdateBillList()
+    {
+
+        changeFolder(spinnerFolder.getSelectedItem().toString());
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -275,14 +348,8 @@ public class MainActivity extends AppCompatActivity {
                 String path_string = prefs.getString("path", "N/C"); //no id: default value
 
                 Bill newBill = new Bill(price_string, place_string, date_string, folder_string, path_string);
-                bills.add(newBill);
-                billAdapter = new BillAdapter(this, R.layout.liste_facture, bills);
-                billList.setAdapter(billAdapter);
-                try {
-                    CreateReport(reportFile);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                // AddBill also sets the ID
+                AddBill(newBill);
             }
         }
 
@@ -301,13 +368,10 @@ public class MainActivity extends AppCompatActivity {
                 bills.get(billID).setPrice(price_float);
                 bills.get(billID).setFolder(folder_string);
 
+                UpdateBill(bills.get(billID));
+
                 changeFolder("-");
                 spinnerFolder.setSelection(0);
-                try {
-                    CreateReport(reportFile);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
             }
         }
     }
@@ -315,7 +379,9 @@ public class MainActivity extends AppCompatActivity {
 
     ////////////////////////////////////////////////////////////////////////////
     // Read the report when launching the app
+   /*
     private void GetReport(String filename) throws IOException
+
     {
         Vector<String> lines = new Vector<>();
         int billCount = 0;
@@ -329,6 +395,7 @@ public class MainActivity extends AppCompatActivity {
                /* We have to use the openFileInput()-method
                 * the ActivityContext provides.
                 * */
+   /*
 
                 FileInputStream fIn = new FileInputStream(f);
                 InputStreamReader isr = new InputStreamReader(fIn);
@@ -368,8 +435,8 @@ public class MainActivity extends AppCompatActivity {
             bills.add(new Bill(realPrice, place, date, folder, path));
             billNumber++;
         }
-
     }
+    */
 
     ////////////////////////////////////////////////////////////////////////////
     // Create a report when clicking on 'générer compte-rendu'
@@ -437,7 +504,6 @@ public class MainActivity extends AppCompatActivity {
 
     public void changeFolder(String folder)
     {
-
         if (!folder.equals("-"))
         {
             ArrayList<Bill> folderArray = getBillsInFolder(folder);
@@ -449,6 +515,18 @@ public class MainActivity extends AppCompatActivity {
             billList.setAdapter(billAdapter);
         }
     }
+
+    //Dynamically create context Menu
+    /* @Override
+   public boolean onPrepareOptionsMenu(Menu menu) {
+        menu.clear(); //Clear view of previous menu
+        MenuInflater inflater = getMenuInflater();
+        if(navPanelEnable)
+            inflater.inflate(R.menu.nav_menu, menu);
+        else
+            inflater.inflate(R.menu.main, menu);
+        return super.onPrepareOptionsMenu(menu);
+    }*/
 
     /* Create a menu in the upper right corner */
     @Override
@@ -462,13 +540,14 @@ public class MainActivity extends AppCompatActivity {
     // When selecting an option in the menu
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        Toast.makeText(getBaseContext(), "ok" +item.getItemId() + " . " + item.toString() , Toast.LENGTH_LONG).show();
         if (mToogle.onOptionsItemSelected(item)){
             return true;
         }
+
         switch(item.getItemId()) {
 
             case R.id.createReportFile:
-
                 try {
                     CreateReport(reportFile);
                 } catch (IOException e) {
@@ -479,8 +558,8 @@ public class MainActivity extends AppCompatActivity {
             // Log In
             case R.id.login:
                 //switch to another activity
-                Intent login = new Intent(MainActivity.this, login.class);
-                startActivity(login);
+                Intent login2 = new Intent(MainActivity.this, login.class);
+                startActivity(login2);
                 return true;
 
             // Add a folder
@@ -596,12 +675,93 @@ public class MainActivity extends AppCompatActivity {
     public ArrayList<String> getAllFolders ()
     {
         ArrayList<String> allFolders = new ArrayList<String>();
+
         for(Bill bill : bills)
         {
             // Add the folder if it's not already added
             if (!allFolders.contains(bill.getFolder())) allFolders.add(bill.getFolder());
         }
         return allFolders;
+    }
+
+    public void SetTheDataBase(){
+        databaseBill.setValue("Autres");
+    }
+
+    /* Database*/
+
+    // Add a Bill to the database
+    public void AddBill(Bill bill){
+        /* Add folder if is not created*/
+        // Write a message to the database
+        DatabaseReference myRef = databaseBill;
+        String Id = myRef.push().getKey();
+        bill.setId(Id);
+        myRef.child(Id).setValue(bill);
+        Toast.makeText(this, "added", Toast.LENGTH_LONG).show();
+    }
+
+    // Delete a bill from the database
+    public void DeleteBill(Bill bill){
+
+        FirebaseDatabase databaseDeleteBill = FirebaseDatabase.getInstance();
+        DatabaseReference myRef = databaseBill.child(bill.getId());
+        /*String Id = myRef.getKey();
+        myRef.child(Id).removeValue();*/
+        myRef.removeValue();
+        myRef.child(bill.getId()).setValue(null);
+        Toast.makeText(this, "deleted", Toast.LENGTH_LONG).show();
+    }
+
+    // Update a Bill in the database
+    public void UpdateBill(Bill bill){
+        FirebaseDatabase databaseUpdateBill = FirebaseDatabase.getInstance();
+        DatabaseReference myRef = databaseUpdateBill.getReference("bills").child(bill.getId());
+        myRef.setValue(bill);
+        Toast.makeText(this, "modified", Toast.LENGTH_LONG).show();
+    }
+
+    // Get all the Bill in 'bills' ArrayList, used to display them in the ListView
+    public void GetAllBills (Map<String,Object> allBills)
+    {
+        bills.clear();
+        if (allBills != null) {
+            for (Map.Entry<String, Object> bill : allBills.entrySet()) {
+                //Get bills
+                Map singleBill = (Map) bill.getValue();
+
+                String date = singleBill.get("date").toString();
+                String folder = singleBill.get("folder").toString();
+                String id = singleBill.get("id").toString();
+                String path = singleBill.get("path").toString();
+                String place = singleBill.get("place").toString();
+                float price = (float) Float.parseFloat(singleBill.get("price").toString());
+                Bill newBill = new Bill(price, place, date, folder, path);
+                newBill.setId(id);
+                bills.add(newBill);
+            }
+        }
+        UpdateBillList();
+    }
+
+    // Get an object Bill from the data got from the database
+    public Bill getBillFromDataSnapshot(DataSnapshot dataSnapshot)
+    {
+        Map singleBill = (Map) dataSnapshot.getValue();
+
+        String place = singleBill.get("place").toString();
+        String folder = singleBill.get("folder").toString();
+        String date = singleBill.get("date").toString();
+        String id = singleBill.get("id").toString();
+        String path = singleBill.get("path").toString();
+        float price = (float) Float.parseFloat(singleBill.get("price").toString());
+        Bill newBill = new Bill(price, place, date, folder, path);
+        newBill.setId(id);
+        return newBill;
+    }
+
+    public void DeleteFolder(String folder){
+        /* Si existe pas, créée un dossier nommé *folder */
     }
 
 }

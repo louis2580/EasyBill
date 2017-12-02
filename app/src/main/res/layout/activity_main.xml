@@ -7,13 +7,34 @@
 	android:id="@+id/drawer"
     tools:context="com.example.easybill.easybillversionvide.MainActivity">
 
-	<android.support.design.widget.NavigationView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:menu="@menu/nav_menu"
+    <LinearLayout
+        android:id="@+id/left_drawer"
+        android:background="@color/colorAccent"
+        android:orientation="vertical"
         android:layout_gravity="start"
-        >
-		</android.support.design.widget.NavigationView>
+        android:layout_width="250dp"
+        android:layout_height="match_parent">
+
+        <Button
+            android:id="@+id/logFacebook"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="1dp"
+            android:text="Connexion Facebook"
+            style="?android:attr/borderlessButtonStyle" />
+
+        <Button
+            android:id="@+id/logGoogle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="70dp"
+            android:gravity="center"
+            android:text="Connexion Google"
+            style="?android:attr/borderlessButtonStyle" />
+
+    </LinearLayout>
 	
 	<android.support.constraint.ConstraintLayout
         android:layout_width="match_parent"
