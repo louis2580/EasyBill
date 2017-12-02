@@ -54,6 +54,8 @@ public class ajout_facture extends AppCompatActivity {
     Button validate;
     // Get the back button
     Button back;
+    // Add folder button
+    Button newFolder;
     // Get Prix total
     EditText Prix;
     // Get Lieu
@@ -78,6 +80,7 @@ public class ajout_facture extends AppCompatActivity {
 
         validate = (Button) findViewById(R.id.validate);
         back = (Button) findViewById(R.id.backAddBill);
+        newFolder = (Button) findViewById(R.id.newFolder);
         Prix = (EditText) findViewById(R.id.prix);
         Lieu = (EditText) findViewById(R.id.lieu);
         Date = (EditText) findViewById(R.id.date);
@@ -115,6 +118,16 @@ public class ajout_facture extends AppCompatActivity {
             }
         });
 
+        ///////////////////////////////////////////////////////////////////////////
+        // When clicking the Add Folder button
+        newFolder.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //switch to another activity
+                Intent addFolder = new Intent(ajout_facture.this, add_folder.class);
+                startActivity(addFolder);
+            }
+        });
 
         // Création de la fenêtre de dialogue
         final DatePickerDialog.OnDateSetListener date = new DatePickerDialog.OnDateSetListener() {

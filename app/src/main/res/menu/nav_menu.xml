@@ -6,4 +6,8 @@
         android:title="Connexion Facebook">
     </item>
 
+    <item android:id="@+id/logGoogle"
+        android:title="Connexion Google">
+    </item>
+
 </menu>

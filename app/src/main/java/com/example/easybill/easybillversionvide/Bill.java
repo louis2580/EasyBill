@@ -11,8 +11,9 @@ public class Bill {
     private float price;
     private String place;
     private String date;
-    private String path;
     private String folder;
+    private String path;
+    private String id;
 
     public Bill(float price, String place, String date, String folder) {
         this.price = price;
@@ -65,4 +66,9 @@ public class Bill {
     public String getFolder() { return folder; }
 
     public void setFolder(String folder) { this.folder = folder; }
+
+    public String getId() { return id; }
+
+    public void setId(String Id) { this.id = Id; }
+
 }
