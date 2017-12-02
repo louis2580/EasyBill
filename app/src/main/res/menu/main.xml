@@ -4,9 +4,20 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
-        android:id="@+id/login"
+        android:id="@+id/logFacebook"
         app:showAsAction="never"
-        android:title="Log in" />
+        android:title="Log FB" />
+
+    <item
+        android:id="@+id/logGoogle"
+        app:showAsAction="never"
+        android:title="Log google" />
+
+    <item
+        android:id="@+id/Calendar"
+        app:showAsAction="never"
+        android:title="Calendar" />
+
     <item
         android:id="@+id/createReportFile"
         android:title="Générer un rapport   " />

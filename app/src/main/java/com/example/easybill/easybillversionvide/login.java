@@ -1,7 +1,9 @@
 package com.example.easybill.easybillversionvide;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
@@ -23,19 +25,29 @@ import java.util.Arrays;
 public class login extends AppCompatActivity {
 
     private static final int RC_SIGN_IN = 123;
+    Button sign_out;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.loginout);
 
         FirebaseAuth auth = FirebaseAuth.getInstance();
 
+        sign_out = (Button) findViewById(R.id.sign_out);
 
         if (auth.getCurrentUser() != null) {
             // already signed in
-            Toast.makeText(getBaseContext(), " is connected", Toast.LENGTH_LONG).show();
-            setContentView(R.layout.loginout);
 
-           Button sign_out = (Button) findViewById(R.id.sign_out);
+            Toast.makeText(getBaseContext(), " is connected", Toast.LENGTH_LONG).show();
+
+            sign_out.setEnabled(true);
+
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putString("mail", auth.getCurrentUser().getEmail().toString()); //InputString: from the EditText
+            editor.apply();
+
+
            sign_out.setOnClickListener(new View.OnClickListener() {
                @Override
                public void onClick(View view) {
@@ -45,15 +57,17 @@ public class login extends AppCompatActivity {
            });
 
         } else {
+
+            sign_out.setEnabled(false);
             // not signed in
             startActivityForResult(
                     // Get an instance of AuthUI based on the default app
                     AuthUI.getInstance().createSignInIntentBuilder().setAvailableProviders(
                             Arrays.asList(new AuthUI.IdpConfig.Builder(AuthUI.EMAIL_PROVIDER).build(),
                                     new AuthUI.IdpConfig.Builder(AuthUI.GOOGLE_PROVIDER).build(),
-                                    new AuthUI.IdpConfig.Builder(AuthUI.FACEBOOK_PROVIDER).setPermissions(Arrays.asList("user_events")).build()))
+                                    new AuthUI.IdpConfig.Builder(AuthUI.FACEBOOK_PROVIDER).build()))
                             .build(),
-                    1);
+                    RC_SIGN_IN);
         }
     }
 
@@ -64,10 +78,15 @@ public class login extends AppCompatActivity {
         if (requestCode == RC_SIGN_IN) {
             IdpResponse response = IdpResponse.fromResultIntent(data);
 
-            if (resultCode == ResultCodes.OK) {
+            Toast.makeText(getBaseContext(), "on est là", Toast.LENGTH_LONG).show();
+
+            if (resultCode == RESULT_OK){
                 // Successfully signed in
                 FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-                // ...
+
+                Toast.makeText(getBaseContext(), user.getDisplayName() + " connected as " + user.getEmail(), Toast.LENGTH_LONG).show();
+                sign_out.setEnabled(true);
+
             } else {
                 // Sign in failed, check response for error code
                 // ...

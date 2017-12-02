@@ -6,8 +6,11 @@ import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.os.Environment;
 import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.NavigationView;
 import android.support.v4.view.GestureDetectorCompat;
+import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
@@ -19,6 +22,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
@@ -44,20 +48,24 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Vector;
 
+
+
 public class MainActivity extends AppCompatActivity {
+
+    String adresseGmail;
 
     static ArrayList<String> FOLDERS = new ArrayList<String>();
     static int ADD_FACTURE = 10;
     static int UPDATE_FACTURE = 20;
+    static int MAIL = 30;
 
     private GestureDetectorCompat gestureDetectorCompat;
     private String reportFile = "report.txt";
 
     //Drawer
     private DrawerLayout mDrawerLayout;
+    private ListView mDrawerList;
     private ActionBarDrawerToggle mToogle;
-
-
 
     Spinner spinnerFolder;
     ArrayAdapter<String> adapter;
@@ -69,6 +77,7 @@ public class MainActivity extends AppCompatActivity {
     FloatingActionButton AjouterFacture;
     Button newFolder;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -78,10 +87,15 @@ public class MainActivity extends AppCompatActivity {
 
         // Drawer
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer);
-        mToogle=new ActionBarDrawerToggle(this, mDrawerLayout, R.string.open, R.string.close);
+        mDrawerList = (ListView) findViewById(R.id.left_drawer);
+
+        //mDrawerList.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, getResources().getStringArray(R.array.menuPanelGauche)));
+
+        mToogle = new ActionBarDrawerToggle(this, mDrawerLayout, R.string.open, R.string.close);
         mDrawerLayout.addDrawerListener(mToogle);
         mToogle.syncState();
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
 
         // Get the buttons
         AjouterFacture = (FloatingActionButton) findViewById(R.id.AjouterFacture);
@@ -94,8 +108,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             // Add all the bills in the report to 'bills'
             GetReport(reportFile);
-        } catch (IOException ioe)
-        {
+        } catch (IOException ioe) {
             ioe.printStackTrace();
         }
 
@@ -105,8 +118,7 @@ public class MainActivity extends AppCompatActivity {
 
         FOLDERS.add("-");
         FOLDERS.addAll(getAllFolders());
-        if (!FOLDERS.contains("Autres"))
-        {
+        if (!FOLDERS.contains("Autres")) {
             FOLDERS.add("Autres");
         }
         Collections.sort(FOLDERS);
@@ -123,7 +135,7 @@ public class MainActivity extends AppCompatActivity {
         spinnerFolder.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                Toast.makeText(getBaseContext(), parent.getSelectedItem().toString()+" is selected", Toast.LENGTH_LONG).show();
+                Toast.makeText(getBaseContext(), parent.getSelectedItem().toString() + " is selected", Toast.LENGTH_LONG).show();
                 changeFolder(parent.getSelectedItem().toString());
             }
 
@@ -164,15 +176,12 @@ public class MainActivity extends AppCompatActivity {
     /////////////////////////////////////////////////////////////////////////////
     // Context menu for long click
     @Override
-    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo)
-    {
-        if (v.getId() == R.id.billList)
-        {
+    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
+        if (v.getId() == R.id.billList) {
             AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
             menu.setHeaderTitle(bills.get(info.position).getPlace());
             String[] menuItems = getResources().getStringArray(R.array.menu);
-            for (int i = 0; i < menuItems.length; i++)
-            {
+            for (int i = 0; i < menuItems.length; i++) {
                 menu.add(Menu.NONE, i, i, menuItems[i]);
             }
         }
@@ -188,8 +197,7 @@ public class MainActivity extends AppCompatActivity {
         Bill listItem = bills.get(info.position);
 
         // action depending on what option was chosen
-        switch (menuItemName)
-        {
+        switch (menuItemName) {
             case "Modifier":
 
                 SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
@@ -226,6 +234,7 @@ public class MainActivity extends AppCompatActivity {
         return super.onTouchEvent(event);
     }
 
+
     ////////////////////////////////////////////////////////////////////////////
     class MyGestureListener extends GestureDetector.SimpleOnGestureListener {
         //handle 'swipe left' action only
@@ -240,7 +249,7 @@ public class MainActivity extends AppCompatActivity {
           Toast.LENGTH_SHORT).show();
          */
 
-            if(event2.getX() < event1.getX()){
+            if (event2.getX() < event1.getX()) {
                 Toast.makeText(getBaseContext(),
                         "Swipe left - startActivity()",
                         Toast.LENGTH_SHORT).show();
@@ -255,7 +264,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
     ////////////////////////////////////////////////////////////////////////////
     /* Activity result:
         ADD_FACTURE : add a Bill to 'bills' and update the report file
@@ -264,10 +272,9 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == ADD_FACTURE)
-        {
+        if (requestCode == ADD_FACTURE) {
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-            if(resultCode == RESULT_OK) {
+            if (resultCode == RESULT_OK) {
                 String date_string = prefs.getString("date", "N/C"); //no id: default value
                 String place_string = prefs.getString("place", "N/C"); //no id: default value
                 float price_string = prefs.getFloat("price", 0); //no id: default value
@@ -286,10 +293,9 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        if (requestCode == UPDATE_FACTURE)
-        {
+        if (requestCode == UPDATE_FACTURE) {
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-            if(resultCode == RESULT_OK) {
+            if (resultCode == RESULT_OK) {
                 String date_string = prefs.getString("date", "N/C"); //no id: default value
                 String place_string = prefs.getString("place", "N/C"); //no id: default value
                 float price_float = prefs.getFloat("price", 0); //no id: default value
@@ -310,13 +316,22 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
+        if (requestCode == MAIL) {
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+            if (resultCode == RESULT_OK) {
+                adresseGmail = prefs.getString("mail", "N/C"); //no id: default value
+                if (adresseGmail != null) {
+                    Toast.makeText(this, adresseGmail, Toast.LENGTH_LONG).show();
+                    Log.d("MAIL", adresseGmail.toString());
+                }
+            }
+        }
     }
 
 
     ////////////////////////////////////////////////////////////////////////////
     // Read the report when launching the app
-    private void GetReport(String filename) throws IOException
-    {
+    private void GetReport(String filename) throws IOException {
         Vector<String> lines = new Vector<>();
         int billCount = 0;
 
@@ -356,8 +371,7 @@ public class MainActivity extends AppCompatActivity {
         String path = new String();
 
 
-        for (String line : lines)
-        {
+        for (String line : lines) {
             String[] parts = line.split("_");
             price = parts[0];
             realPrice = Float.parseFloat(price);
@@ -373,8 +387,7 @@ public class MainActivity extends AppCompatActivity {
 
     ////////////////////////////////////////////////////////////////////////////
     // Create a report when clicking on 'générer compte-rendu'
-    private void CreateReport(String filename) throws IOException
-    {
+    private void CreateReport(String filename) throws IOException {
         File dir = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS).toString());
         dir.mkdirs();
         File f = new File(dir, filename);
@@ -386,24 +399,21 @@ public class MainActivity extends AppCompatActivity {
             FileOutputStream fOut = new FileOutputStream(f);
             OutputStreamWriter osw = new OutputStreamWriter(fOut);
 
-            for (Bill billToAdd : bills)
-            {
+            for (Bill billToAdd : bills) {
                 String prix = Float.toString(billToAdd.getPrice());
-                String chemin ;
-                if (billToAdd.getPath()!="")
-                {
+                String chemin;
+                if (billToAdd.getPath() != "") {
                     chemin = billToAdd.getPath();
-                } else
-                {
+                } else {
                     chemin = "N/C";
                 }
                 String line = prix
-                        +'_'+ billToAdd.getPlace()
-                        +'_'+ billToAdd.getDate()
-                        +'_'+ billToAdd.getFolder()
-                        +"_"+ billToAdd.getPath()+"\n";
+                        + '_' + billToAdd.getPlace()
+                        + '_' + billToAdd.getDate()
+                        + '_' + billToAdd.getFolder()
+                        + "_" + billToAdd.getPath() + "\n";
                 // Write the string to the file
-                Toast.makeText(getBaseContext(), line , Toast.LENGTH_LONG).show();
+                Toast.makeText(getBaseContext(), line, Toast.LENGTH_LONG).show();
                 osw.write(line);
             }
 
@@ -416,35 +426,29 @@ public class MainActivity extends AppCompatActivity {
 
         } catch (IOException ioe) {
             ioe.printStackTrace();
-            Toast.makeText(getBaseContext(), "error writing file : "+ioe, Toast.LENGTH_LONG).show();
+            Toast.makeText(getBaseContext(), "error writing file : " + ioe, Toast.LENGTH_LONG).show();
 
         }
 
     }
 
-    public ArrayList<Bill> getBillsInFolder (String folder)
-    {
+    public ArrayList<Bill> getBillsInFolder(String folder) {
         ArrayList<Bill> billsInFolder = new ArrayList<Bill>();
-        for (Bill bill : bills)
-        {
-            if (bill.getFolder().equals(folder))
-            {
+        for (Bill bill : bills) {
+            if (bill.getFolder().equals(folder)) {
                 billsInFolder.add(bill);
             }
         }
         return billsInFolder;
     }
 
-    public void changeFolder(String folder)
-    {
+    public void changeFolder(String folder) {
 
-        if (!folder.equals("-"))
-        {
+        if (!folder.equals("-")) {
             ArrayList<Bill> folderArray = getBillsInFolder(folder);
             billAdapter = new BillAdapter(this, R.layout.liste_facture, folderArray);
             billList.setAdapter(billAdapter);
-        } else
-        {
+        } else {
             billAdapter = new BillAdapter(this, R.layout.liste_facture, bills);
             billList.setAdapter(billAdapter);
         }
@@ -458,14 +462,17 @@ public class MainActivity extends AppCompatActivity {
         return super.onCreateOptionsMenu(menu);
     }
 
+
     /////////////////////////////////////////////////////
     // When selecting an option in the menu
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (mToogle.onOptionsItemSelected(item)){
+        Toast.makeText(getBaseContext(), "ok1", Toast.LENGTH_LONG).show();
+        if (mToogle.onOptionsItemSelected(item)) {
+            Toast.makeText(getBaseContext(), "ok2 : " + item.getTitle(), Toast.LENGTH_LONG).show();
             return true;
         }
-        switch(item.getItemId()) {
+        switch (item.getItemId()) {
 
             case R.id.createReportFile:
 
@@ -477,10 +484,10 @@ public class MainActivity extends AppCompatActivity {
                 return true;
 
             // Log In
-            case R.id.login:
+            case R.id.logGoogle:
                 //switch to another activity
                 Intent login = new Intent(MainActivity.this, login.class);
-                startActivity(login);
+                startActivityForResult(login, MAIL);
                 return true;
 
             // Add a folder
@@ -512,10 +519,8 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             // DELETE THE FOLDER but keep the bills in 'Autres'
-                            for (Bill bill : bills)
-                            {
-                                if (bill.getFolder().equals(spinnerFolder.getSelectedItem().toString()))
-                                {
+                            for (Bill bill : bills) {
+                                if (bill.getFolder().equals(spinnerFolder.getSelectedItem().toString())) {
                                     bill.setFolder("Autres");
                                 }
                             }
@@ -535,13 +540,10 @@ public class MainActivity extends AppCompatActivity {
                     });
 
                     alert.show();
-                } else
-                {
-                    if (spinnerFolder.getSelectedItem().toString().equals("Autres"))
-                    {
+                } else {
+                    if (spinnerFolder.getSelectedItem().toString().equals("Autres")) {
                         Toast.makeText(getBaseContext(), "Le dossier 'Autres' ne peut pas être supprimé.", Toast.LENGTH_LONG).show();
-                    } else
-                    {
+                    } else {
                         Toast.makeText(getBaseContext(), "Sélectionner un dossier pour effectuer cette action", Toast.LENGTH_LONG).show();
                     }
                 }
@@ -554,8 +556,7 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void showLastChanceDialog(final String folderToDelete)
-    {
+    private void showLastChanceDialog(final String folderToDelete) {
         final AlertDialog.Builder lastAlert = new AlertDialog.Builder(MainActivity.this);
         lastAlert.setTitle("Dernière chance...");
         lastAlert.setMessage("Le dossier " + spinnerFolder.getSelectedItem().toString() +
@@ -565,10 +566,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 // DELETE THE FOLDER AND ALL THE BILLS IN IT
-                for (int i = 0; i < bills.size(); i++)
-                {
-                    if (bills.get(i).getFolder().equals(folderToDelete))
-                    {
+                for (int i = 0; i < bills.size(); i++) {
+                    if (bills.get(i).getFolder().equals(folderToDelete)) {
                         bills.remove(i);
                     }
                 }
@@ -593,15 +592,12 @@ public class MainActivity extends AppCompatActivity {
 
     /////////////////////////////////////////////////////////////////
     // Get all the folders
-    public ArrayList<String> getAllFolders ()
-    {
+    public ArrayList<String> getAllFolders() {
         ArrayList<String> allFolders = new ArrayList<String>();
-        for(Bill bill : bills)
-        {
+        for (Bill bill : bills) {
             // Add the folder if it's not already added
             if (!allFolders.contains(bill.getFolder())) allFolders.add(bill.getFolder());
         }
         return allFolders;
     }
-
 }
