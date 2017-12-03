@@ -740,13 +740,9 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(getBaseContext(), parent.getSelectedItem().toString() + " is selected", Toast.LENGTH_LONG).show();
                 changeFolder(parent.getSelectedItem().toString());
             }
-
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
-
             }
         });
-
     }
-
 }
