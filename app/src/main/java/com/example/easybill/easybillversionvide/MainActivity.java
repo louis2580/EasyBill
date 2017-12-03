@@ -769,6 +769,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+<<<<<<< HEAD
 
     public void getDataFromCalendarTable() {
         if(FirebaseAuth.getInstance().getCurrentUser() != null){
@@ -829,4 +830,6 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Not Connected", Toast.LENGTH_LONG).show();
         }
     }
+=======
+>>>>>>> 0762eab4b98475953575072e4ba463f8e3513571
 }

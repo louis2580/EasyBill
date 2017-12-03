@@ -13,7 +13,11 @@
     <string name="preferencePlace">com.example.myapp.PREFERENCE_FILE_KEY</string> //
 
     <!-- ... -->
+<<<<<<< HEAD
     <string name="facebook_application_id" translatable="false">237951746737874</string>
+=======
+    <string name="facebook_application_id" translatable="false">2047676842134756</string>
+>>>>>>> 0762eab4b98475953575072e4ba463f8e3513571
     <!-- Facebook Application ID, prefixed by 'fb'.  Enables Chrome Custom tabs. -->
     <string name="facebook_login_protocol_scheme" translatable="false">fbAPP_ID</string>
 

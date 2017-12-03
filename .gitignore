@@ -55,3 +55,4 @@ freeline/
 freeline_project_description.json
 
 # strings.xml
+app/src/main/res/values/strings.xml
