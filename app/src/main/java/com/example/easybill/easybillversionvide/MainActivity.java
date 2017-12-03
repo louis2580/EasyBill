@@ -2,13 +2,20 @@ package com.example.easybill.easybillversionvide;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Environment;
 import android.preference.PreferenceManager;
+import android.provider.CalendarContract;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -31,6 +38,7 @@ import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.content.Intent;
 import android.os.Bundle;
@@ -46,6 +54,8 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import org.w3c.dom.Text;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -59,6 +69,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Map;
 import java.util.Vector;
 
@@ -96,11 +107,23 @@ public class MainActivity extends AppCompatActivity {
     FloatingActionButton AjouterFacture;
     Button newFolder;
 
+    TextView calendar;
+    Button getCalendar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        calendar = (TextView) findViewById(R.id.Calendar);
+        getCalendar = (Button) findViewById(R.id.getCalendar);
+
+        getCalendar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                getDataFromCalendarTable();
+            }
+        });
 
         // Get the buttons
         AjouterFacture = (FloatingActionButton) findViewById(R.id.AjouterFacture);
@@ -655,6 +678,7 @@ public class MainActivity extends AppCompatActivity {
         float price = (float) Float.parseFloat(singleBill.get("price").toString());
         Bill newBill = new Bill(price, place, date, folder, path);
         newBill.setId(id);
+        Toast.makeText(this, "Place : " + place + folder + id, Toast.LENGTH_LONG).show();
         return newBill;
     }
 
@@ -740,13 +764,69 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(getBaseContext(), parent.getSelectedItem().toString() + " is selected", Toast.LENGTH_LONG).show();
                 changeFolder(parent.getSelectedItem().toString());
             }
-
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
-
             }
         });
-
     }
 
+    public void getDataFromCalendarTable() {
+        if(FirebaseAuth.getInstance().getCurrentUser() != null){
+            Toast.makeText(this, "Je passe dans cette méthode de merde ", Toast.LENGTH_LONG).show();
+            Cursor cur = null;
+            ContentResolver cr = getContentResolver();
+
+            String[] mProjection = new String[] { CalendarContract.Events.CALENDAR_ID, CalendarContract.Events.TITLE, CalendarContract.Events.DESCRIPTION, CalendarContract.Events.DTSTART, CalendarContract.Events.DTEND, CalendarContract.Events.ALL_DAY, CalendarContract.Events.EVENT_LOCATION };
+
+            /*Uri uri = CalendarContract.Calendars.CONTENT_URI;
+            String selection = "((" + CalendarContract.Calendars.ACCOUNT_NAME + " = ?) AND ("
+                    + CalendarContract.Calendars.ACCOUNT_TYPE + " = ?) AND ("
+                    + CalendarContract.Calendars.OWNER_ACCOUNT + " = ?))";
+            String[] selectionArgs = new String[]{FirebaseAuth.getInstance().getCurrentUser().getEmail(), "com.google",
+                    FirebaseAuth.getInstance().getCurrentUser().getDisplayName()};
+
+            Toast.makeText(this, "Before Permission checked ", Toast.LENGTH_LONG).show();
+            if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.READ_CALENDAR) != PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "Permission checked ", Toast.LENGTH_LONG).show();
+                ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.READ_CALENDAR},12);
+            }
+            Toast.makeText(this, "After Permission checked ", Toast.LENGTH_LONG).show();
+            cur = cr.query(uri, mProjection, selection, selectionArgs, null);
+
+            while (cur.moveToNext()) {
+                String displayName = cur.getString(cur.getColumnIndex(CalendarContract.Calendars.CALENDAR_DISPLAY_NAME));
+                String accountName = cur.getString(cur.getColumnIndex(CalendarContract.Calendars.ACCOUNT_NAME));
+                Toast.makeText(this, "Calendar get from "+ accountName, Toast.LENGTH_LONG).show();
+                calendar.setText(displayName + " of " + accountName);
+            }*/
+
+            Calendar startTime = Calendar.getInstance();
+            startTime.set(2017,11,01,00,00);
+
+            Calendar endTime= Calendar.getInstance();
+            endTime.set(2017,12,05,00,00);
+
+            // the range is all data from 2014
+
+            String selection = "(( " + CalendarContract.Events.DTSTART + " >= " + startTime.getTimeInMillis() + " ) AND ( " + CalendarContract.Events.DTSTART + " <= " + endTime.getTimeInMillis() + " ))";
+
+            Cursor cursor = this.getBaseContext().getContentResolver().query( CalendarContract.Events.CONTENT_URI, mProjection, selection, null, null );
+
+            // output the events
+
+            if (cursor.moveToFirst()) {
+                do {
+                    Toast.makeText( this.getApplicationContext(), "Title: " + cursor.getString(1) + " Start-Time: " + (new Date(cursor.getLong(3))).toString(), Toast.LENGTH_LONG ).show();
+                    calendar.setText((new Date(cursor.getLong(3))).toString());
+                } while ( cursor.moveToNext());
+            }
+
+
+
+
+        }
+        else{
+            Toast.makeText(this, "Not Connected", Toast.LENGTH_LONG).show();
+        }
+    }
 }
