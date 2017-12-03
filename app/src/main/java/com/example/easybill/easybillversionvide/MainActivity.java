@@ -3,19 +3,15 @@ package com.example.easybill.easybillversionvide;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.database.Cursor;
-import android.net.Uri;
 import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.provider.CalendarContract;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
-import android.support.v4.app.ActivityCompat;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -53,8 +49,6 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-
-import org.w3c.dom.Text;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -97,6 +91,10 @@ public class MainActivity extends AppCompatActivity {
     MenuItem deleteFolder;
     MenuItem createReportFile;
 
+    ////////////////////////////////////////////////////////////////////////////// Calendrier : à supprimer
+    TextView calendar;
+    Button getCalendar;
+
     Spinner spinnerFolder;
     ArrayAdapter<String> adapter;
 
@@ -107,27 +105,25 @@ public class MainActivity extends AppCompatActivity {
     FloatingActionButton AjouterFacture;
     Button newFolder;
 
-    TextView calendar;
-    Button getCalendar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        calendar = (TextView) findViewById(R.id.Calendar);
-        getCalendar = (Button) findViewById(R.id.getCalendar);
-
-        getCalendar.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                getDataFromCalendarTable();
-            }
-        });
-
         // Get the buttons
         AjouterFacture = (FloatingActionButton) findViewById(R.id.AjouterFacture);
         newFolder = findViewById(R.id.newFolder);
+
+        ////////////////////////////////////////////////////////////////////////////// Calendrier : à supprimer
+        calendar = findViewById(R.id.caledndar);
+        getCalendar = findViewById(R.id.getCalendar);
+        getCalendar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                getDataFromCalendarTable();
+            }
+        });
 
         auth = FirebaseAuth.getInstance();
 
@@ -362,6 +358,8 @@ public class MainActivity extends AppCompatActivity {
                 addFolder.setEnabled(true);
                 deleteFolder.setEnabled(true);
 
+                SyncDatabase(user.getUid());
+
             } else {
                 // Sign in failed, check response for error code
                 // ...
@@ -391,7 +389,7 @@ public class MainActivity extends AppCompatActivity {
 
     ////////////////////////////////////////////////////////////////////////////
     // Create a report when clicking on 'générer compte-rendu'
-    private void CreateReport(String filename) throws IOException {
+    private void CreateReport(String filename, String foldername) throws IOException {
         File dir = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS).toString());
         dir.mkdirs();
         File f = new File(dir, filename);
@@ -403,27 +401,34 @@ public class MainActivity extends AppCompatActivity {
             FileOutputStream fOut = new FileOutputStream(f);
             OutputStreamWriter osw = new OutputStreamWriter(fOut);
 
+            if (foldername.equals("-")) foldername = "Toutes les factures";
+
+            osw.write("# Liste des factures pour le dossier " + foldername + " : \n# \n");
+
+            float total = 0;
+
             for (Bill billToAdd : bills) {
-                String prix = Float.toString(billToAdd.getPrice());
-                String chemin;
-                if (billToAdd.getPath() != "") {
-                    chemin = billToAdd.getPath();
-                } else {
-                    chemin = "N/C";
+                if (billToAdd.getFolder().equals(foldername) || foldername.equals("Toutes les factures")) {
+
+                    total += billToAdd.getPrice();
+                    String prix = Float.toString(billToAdd.getPrice());
+                    String chemin;
+                    if (billToAdd.getPath() != "") {
+                        chemin = billToAdd.getPath();
+                    } else {
+                        chemin = "N/C";
+                    }
+                    String line = prix
+                            + " - " + billToAdd.getPlace()
+                            + " - " + billToAdd.getDate()
+                            + " - " + billToAdd.getPath() + "\n";
+                    // Write the string to the file
+                    Toast.makeText(getBaseContext(), line, Toast.LENGTH_LONG).show();
+                    osw.write(line);
                 }
-                String line = prix
-                        + '_' + billToAdd.getPlace()
-                        + '_' + billToAdd.getDate()
-                        + '_' + billToAdd.getFolder()
-                        + "_" + billToAdd.getPath() + "\n";
-                // Write the string to the file
-                Toast.makeText(getBaseContext(), line, Toast.LENGTH_LONG).show();
-                osw.write(line);
             }
 
-
-                   /* ensure that everything is
-                    * really written out and close */
+            osw.write("# \n# Total " + total);
 
             osw.flush();
             osw.close();
@@ -431,9 +436,7 @@ public class MainActivity extends AppCompatActivity {
         } catch (IOException ioe) {
             ioe.printStackTrace();
             Toast.makeText(getBaseContext(), "error writing file : " + ioe, Toast.LENGTH_LONG).show();
-
         }
-
     }
 
     public ArrayList<Bill> getBillsInFolder(String folder) {
@@ -467,7 +470,7 @@ public class MainActivity extends AppCompatActivity {
 
             case R.id.createReportFile:
                 try {
-                    CreateReport(reportFile);
+                    CreateReport(reportFile, spinnerFolder.getSelectedItem().toString());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -678,7 +681,6 @@ public class MainActivity extends AppCompatActivity {
         float price = (float) Float.parseFloat(singleBill.get("price").toString());
         Bill newBill = new Bill(price, place, date, folder, path);
         newBill.setId(id);
-        Toast.makeText(this, "Place : " + place + folder + id, Toast.LENGTH_LONG).show();
         return newBill;
     }
 
@@ -692,7 +694,10 @@ public class MainActivity extends AppCompatActivity {
         FOLDERS.clear();
         // Connexion to Firebase
         Toast.makeText(getBaseContext(), "UID : "+userId, Toast.LENGTH_LONG).show();
-        FirebaseDatabase.getInstance().getReference().child(userId).push();
+        if (FirebaseDatabase.getInstance().getReference().child(userId) == null)
+        {
+            FirebaseDatabase.getInstance().getReference().child(userId).push();
+        }
         databaseBill = FirebaseDatabase.getInstance().getReference().child(userId);
         databaseBill.addChildEventListener(new ChildEventListener() {
             @Override
@@ -769,7 +774,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
-<<<<<<< HEAD
 
     public void getDataFromCalendarTable() {
         if(FirebaseAuth.getInstance().getCurrentUser() != null){
@@ -777,29 +781,13 @@ public class MainActivity extends AppCompatActivity {
             Cursor cur = null;
             ContentResolver cr = getContentResolver();
 
-            String[] mProjection = new String[] { CalendarContract.Events.CALENDAR_ID, CalendarContract.Events.TITLE, CalendarContract.Events.DESCRIPTION, CalendarContract.Events.DTSTART, CalendarContract.Events.DTEND, CalendarContract.Events.ALL_DAY, CalendarContract.Events.EVENT_LOCATION };
-
-            /*Uri uri = CalendarContract.Calendars.CONTENT_URI;
-            String selection = "((" + CalendarContract.Calendars.ACCOUNT_NAME + " = ?) AND ("
-                    + CalendarContract.Calendars.ACCOUNT_TYPE + " = ?) AND ("
-                    + CalendarContract.Calendars.OWNER_ACCOUNT + " = ?))";
-            String[] selectionArgs = new String[]{FirebaseAuth.getInstance().getCurrentUser().getEmail(), "com.google",
-                    FirebaseAuth.getInstance().getCurrentUser().getDisplayName()};
-
-            Toast.makeText(this, "Before Permission checked ", Toast.LENGTH_LONG).show();
-            if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.READ_CALENDAR) != PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this, "Permission checked ", Toast.LENGTH_LONG).show();
-                ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.READ_CALENDAR},12);
-            }
-            Toast.makeText(this, "After Permission checked ", Toast.LENGTH_LONG).show();
-            cur = cr.query(uri, mProjection, selection, selectionArgs, null);
-
-            while (cur.moveToNext()) {
-                String displayName = cur.getString(cur.getColumnIndex(CalendarContract.Calendars.CALENDAR_DISPLAY_NAME));
-                String accountName = cur.getString(cur.getColumnIndex(CalendarContract.Calendars.ACCOUNT_NAME));
-                Toast.makeText(this, "Calendar get from "+ accountName, Toast.LENGTH_LONG).show();
-                calendar.setText(displayName + " of " + accountName);
-            }*/
+            String[] mProjection = new String[] { CalendarContract.Events.CALENDAR_ID,
+                    CalendarContract.Events.TITLE,
+                    CalendarContract.Events.DESCRIPTION,
+                    CalendarContract.Events.DTSTART,
+                    CalendarContract.Events.DTEND,
+                    CalendarContract.Events.ALL_DAY,
+                    CalendarContract.Events.EVENT_LOCATION };
 
             Calendar startTime = Calendar.getInstance();
             startTime.set(2017,11,01,00,00);
@@ -811,7 +799,8 @@ public class MainActivity extends AppCompatActivity {
 
             String selection = "(( " + CalendarContract.Events.DTSTART + " >= " + startTime.getTimeInMillis() + " ) AND ( " + CalendarContract.Events.DTSTART + " <= " + endTime.getTimeInMillis() + " ))";
 
-            Cursor cursor = this.getBaseContext().getContentResolver().query( CalendarContract.Events.CONTENT_URI, mProjection, selection, null, null );
+            Cursor cursor = this.getBaseContext().getContentResolver()
+                    .query( CalendarContract.Events.CONTENT_URI, mProjection, selection, null, null );
 
             // output the events
 
@@ -821,15 +810,9 @@ public class MainActivity extends AppCompatActivity {
                     calendar.setText((new Date(cursor.getLong(3))).toString());
                 } while ( cursor.moveToNext());
             }
-
-
-
-
         }
         else{
             Toast.makeText(this, "Not Connected", Toast.LENGTH_LONG).show();
         }
     }
-=======
->>>>>>> 0762eab4b98475953575072e4ba463f8e3513571
 }
