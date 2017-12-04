@@ -2,6 +2,7 @@ package com.example.easybill.easybillversionvide;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -17,6 +18,9 @@ import static com.example.easybill.easybillversionvide.MainActivity.FOLDERS;
 
 public class add_folder extends AppCompatActivity{
 
+    private static final String TAG = "MyService";
+
+    String TitreFromEvent;
 
     Button validate;
     Button back;
@@ -32,41 +36,46 @@ public class add_folder extends AppCompatActivity{
 
         final ArrayList allFolders = FOLDERS;
 
+        FromEvent();
+
         back.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 onBackPressed();
             }
         });
-
         validate.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (folderName.getText().toString().length() == 0)
-                {
+                Log.d(TAG, "appui sur bouton confirmé");
+                if (folderName.getText().toString().length() == 0) {
                     Toast.makeText(getBaseContext(), "Entrer un nom de dossier", Toast.LENGTH_LONG).show();
                     return;
-                } else
-                {
+                } else {
                     boolean exists = false;
-                    for (int i = 0; i<allFolders.size(); i++) {
-                        if (folderName.getText().toString().equals(allFolders.get(i)))
-                        {
+                    for (int i = 0; i < allFolders.size(); i++) {
+                        if (folderName.getText().toString().equals(allFolders.get(i))) {
                             exists = true;
                         }
                     }
-                    if (exists)
-                    {
+                    if (exists) {
                         Toast.makeText(getBaseContext(), "Ce dossier existe déjà", Toast.LENGTH_LONG).show();
                         return;
-                    } else
-                    {
+                    } else {
                         FOLDERS.add(folderName.getText().toString());
                         finish();
                     }
                 }
             }
         });
+    }
 
+    public void FromEvent(){
+        try{
+            TitreFromEvent = getIntent().getExtras().getString("Titre");
+            folderName.setText(TitreFromEvent);
+        } catch(NullPointerException e) {
+            Log.d(TAG, "null");
+        }
     }
 }

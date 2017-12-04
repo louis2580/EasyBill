@@ -3,15 +3,19 @@ package com.example.easybill.easybillversionvide;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.provider.CalendarContract;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -50,6 +54,8 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import org.w3c.dom.Text;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -68,7 +74,6 @@ import java.util.Map;
 import java.util.Vector;
 
 
-
 public class MainActivity extends AppCompatActivity {
 
 
@@ -76,10 +81,12 @@ public class MainActivity extends AppCompatActivity {
     DatabaseReference databaseBill;
 
     static ArrayList<String> FOLDERS = new ArrayList<String>();
+    static ArrayList<String> NOMSEVENTS = new ArrayList<String>();
     static int ADD_FACTURE = 10;
     static int UPDATE_FACTURE = 20;
     static int RC_SIGN_IN = 30;
     static int RC_SIGN_OUT = 40;
+
 
     private GestureDetectorCompat gestureDetectorCompat;
     private String reportFile = "report.txt";
@@ -91,10 +98,6 @@ public class MainActivity extends AppCompatActivity {
     MenuItem deleteFolder;
     MenuItem createReportFile;
 
-    ////////////////////////////////////////////////////////////////////////////// Calendrier : à supprimer
-    TextView calendar;
-    Button getCalendar;
-
     Spinner spinnerFolder;
     ArrayAdapter<String> adapter;
 
@@ -105,25 +108,15 @@ public class MainActivity extends AppCompatActivity {
     FloatingActionButton AjouterFacture;
     Button newFolder;
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
         // Get the buttons
         AjouterFacture = (FloatingActionButton) findViewById(R.id.AjouterFacture);
         newFolder = findViewById(R.id.newFolder);
-
-        ////////////////////////////////////////////////////////////////////////////// Calendrier : à supprimer
-        calendar = findViewById(R.id.caledndar);
-        getCalendar = findViewById(R.id.getCalendar);
-        getCalendar.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                getDataFromCalendarTable();
-            }
-        });
 
         auth = FirebaseAuth.getInstance();
 
@@ -135,26 +128,30 @@ public class MainActivity extends AppCompatActivity {
         newFolder.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-            //switch to another activity
-            Intent addFolder = new Intent(MainActivity.this, add_folder.class);
-            startActivity(addFolder);
+                //switch to another activity
+                Intent addFolder = new Intent(MainActivity.this, add_folder.class);
+                startActivity(addFolder);
             }
         });
 
         ////////////////////////////////////////////////////////////////////
         // checks if a user is already logged
 
-        if (auth.getCurrentUser() == null)
-        {
+        if (auth.getCurrentUser() == null) {
             // no one connected
             AjouterFacture.setEnabled(false);
             newFolder.setEnabled(false);
 
-        }
-        else
-        {
+        } else {
             SyncDatabase(auth.getCurrentUser().getUid());
         }
+
+        ///////////////////////////////////////////////////////////////////////////
+        // Start the push notification service to chack the agenda
+
+        Intent mServiceIntent = new Intent(MainActivity.this, CalendarService.class);
+        // Starts the IntentService
+        MainActivity.this.startService(mServiceIntent);
 
         ///////////////////////////////////////////////////////////////////////////
         // When clicking the floating Add button
@@ -172,7 +169,6 @@ public class MainActivity extends AppCompatActivity {
         /////////////////////////////////////////////////
         gestureDetectorCompat = new GestureDetectorCompat(this, new MyGestureListener());
     }
-
 
 
     /////////////////////////////////////////////////////////////////////////////
@@ -235,8 +231,7 @@ public class MainActivity extends AppCompatActivity {
         return super.onTouchEvent(event);
     }
 
-    public void UpdateBillList()
-    {
+    public void UpdateBillList() {
 
         changeFolder(spinnerFolder.getSelectedItem().toString());
     }
@@ -282,21 +277,19 @@ public class MainActivity extends AppCompatActivity {
         MenuInflater menuInflater = getMenuInflater();
         menuInflater.inflate(R.menu.main, menu);
 
-        logIn = menu.findItem (R.id.logIn);
+        logIn = menu.findItem(R.id.logIn);
         logOut = menu.findItem(R.id.logOut);
         addFolder = menu.findItem(R.id.addFolder);
         deleteFolder = menu.findItem(R.id.removeFolder);
         createReportFile = menu.findItem(R.id.createReportFile);
 
-        if (auth.getCurrentUser() == null)
-        {
+        if (auth.getCurrentUser() == null) {
             // no one connected
             logIn.setEnabled(true);
             logOut.setEnabled(false);
             deleteFolder.setEnabled(false);
             addFolder.setEnabled(false);
-        } else
-        {
+        } else {
             logIn.setEnabled(false);
             logOut.setEnabled(true);
             deleteFolder.setEnabled(true);
@@ -346,7 +339,7 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == RC_SIGN_IN) {
             IdpResponse response = IdpResponse.fromResultIntent(data);
 
-            if (resultCode == RESULT_OK){
+            if (resultCode == RESULT_OK) {
                 // Successfully signed in
                 FirebaseUser user = auth.getCurrentUser();
 
@@ -358,8 +351,6 @@ public class MainActivity extends AppCompatActivity {
                 addFolder.setEnabled(true);
                 deleteFolder.setEnabled(true);
 
-                SyncDatabase(user.getUid());
-
             } else {
                 // Sign in failed, check response for error code
                 // ...
@@ -367,10 +358,8 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        if (requestCode == RC_SIGN_OUT)
-        {
-            if (resultCode == RESULT_OK)
-            {
+        if (requestCode == RC_SIGN_OUT) {
+            if (resultCode == RESULT_OK) {
                 Toast.makeText(getBaseContext(), "Vous avez été déconnecté", Toast.LENGTH_LONG).show();
                 logIn.setEnabled(true);
                 logOut.setEnabled(false);
@@ -389,7 +378,7 @@ public class MainActivity extends AppCompatActivity {
 
     ////////////////////////////////////////////////////////////////////////////
     // Create a report when clicking on 'générer compte-rendu'
-    private void CreateReport(String filename, String foldername) throws IOException {
+    private void CreateReport(String filename) throws IOException {
         File dir = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS).toString());
         dir.mkdirs();
         File f = new File(dir, filename);
@@ -401,34 +390,27 @@ public class MainActivity extends AppCompatActivity {
             FileOutputStream fOut = new FileOutputStream(f);
             OutputStreamWriter osw = new OutputStreamWriter(fOut);
 
-            if (foldername.equals("-")) foldername = "Toutes les factures";
-
-            osw.write("# Liste des factures pour le dossier " + foldername + " : \n# \n");
-
-            float total = 0;
-
             for (Bill billToAdd : bills) {
-                if (billToAdd.getFolder().equals(foldername) || foldername.equals("Toutes les factures")) {
-
-                    total += billToAdd.getPrice();
-                    String prix = Float.toString(billToAdd.getPrice());
-                    String chemin;
-                    if (billToAdd.getPath() != "") {
-                        chemin = billToAdd.getPath();
-                    } else {
-                        chemin = "N/C";
-                    }
-                    String line = prix
-                            + " - " + billToAdd.getPlace()
-                            + " - " + billToAdd.getDate()
-                            + " - " + billToAdd.getPath() + "\n";
-                    // Write the string to the file
-                    Toast.makeText(getBaseContext(), line, Toast.LENGTH_LONG).show();
-                    osw.write(line);
+                String prix = Float.toString(billToAdd.getPrice());
+                String chemin;
+                if (billToAdd.getPath() != "") {
+                    chemin = billToAdd.getPath();
+                } else {
+                    chemin = "N/C";
                 }
+                String line = prix
+                        + '_' + billToAdd.getPlace()
+                        + '_' + billToAdd.getDate()
+                        + '_' + billToAdd.getFolder()
+                        + "_" + billToAdd.getPath() + "\n";
+                // Write the string to the file
+                Toast.makeText(getBaseContext(), line, Toast.LENGTH_LONG).show();
+                osw.write(line);
             }
 
-            osw.write("# \n# Total " + total);
+
+                   /* ensure that everything is
+                    * really written out and close */
 
             osw.flush();
             osw.close();
@@ -436,7 +418,9 @@ public class MainActivity extends AppCompatActivity {
         } catch (IOException ioe) {
             ioe.printStackTrace();
             Toast.makeText(getBaseContext(), "error writing file : " + ioe, Toast.LENGTH_LONG).show();
+
         }
+
     }
 
     public ArrayList<Bill> getBillsInFolder(String folder) {
@@ -449,10 +433,8 @@ public class MainActivity extends AppCompatActivity {
         return billsInFolder;
     }
 
-    public void changeFolder(String folder)
-    {
-        if (!folder.equals("-"))
-        {
+    public void changeFolder(String folder) {
+        if (!folder.equals("-")) {
             ArrayList<Bill> folderArray = getBillsInFolder(folder);
             billAdapter = new BillAdapter(this, R.layout.liste_facture, folderArray);
             billList.setAdapter(billAdapter);
@@ -461,16 +443,17 @@ public class MainActivity extends AppCompatActivity {
             billList.setAdapter(billAdapter);
         }
     }
+
     /////////////////////////////////////////////////////
     // When selecting an option in the menu
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Toast.makeText(getBaseContext(), "ok" +item.getItemId() + " . " + item.toString() , Toast.LENGTH_LONG).show();
-        switch(item.getItemId()) {
+        switch (item.getItemId()) {
 
             case R.id.createReportFile:
                 try {
-                    CreateReport(reportFile, spinnerFolder.getSelectedItem().toString());
+                    CreateReport(reportFile);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -480,13 +463,13 @@ public class MainActivity extends AppCompatActivity {
             case R.id.logIn:
                 //switch to another activity
                 startActivityForResult(
-                // Get an instance of AuthUI based on the default app
-                    AuthUI.getInstance().createSignInIntentBuilder().setAvailableProviders(
-                        Arrays.asList(new AuthUI.IdpConfig.Builder(AuthUI.EMAIL_PROVIDER).build(),
-                                new AuthUI.IdpConfig.Builder(AuthUI.GOOGLE_PROVIDER).build(),
-                                new AuthUI.IdpConfig.Builder(AuthUI.FACEBOOK_PROVIDER).build()))
-                        .build(),
-                    RC_SIGN_IN);
+                        // Get an instance of AuthUI based on the default app
+                        AuthUI.getInstance().createSignInIntentBuilder().setAvailableProviders(
+                                Arrays.asList(new AuthUI.IdpConfig.Builder(AuthUI.EMAIL_PROVIDER).build(),
+                                        new AuthUI.IdpConfig.Builder(AuthUI.GOOGLE_PROVIDER).build(),
+                                        new AuthUI.IdpConfig.Builder(AuthUI.FACEBOOK_PROVIDER).build()))
+                                .build(),
+                        RC_SIGN_IN);
                 return true;
 
             // Log In
@@ -603,8 +586,7 @@ public class MainActivity extends AppCompatActivity {
     // Get all the folders
     public ArrayList<String> getAllFolders() {
         ArrayList<String> allFolders = new ArrayList<String>();
-        for(Bill bill : bills)
-        {
+        for (Bill bill : bills) {
             // Add the folder if it's not already added
             if (!allFolders.contains(bill.getFolder())) allFolders.add(bill.getFolder());
         }
@@ -614,7 +596,7 @@ public class MainActivity extends AppCompatActivity {
     /* Database*/
 
     // Add a Bill to the database
-    public void AddBill(Bill bill){
+    public void AddBill(Bill bill) {
         /* Add folder if is not created*/
         // Write a message to the database
         DatabaseReference myRef = databaseBill;
@@ -625,7 +607,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // Delete a bill from the database
-    public void DeleteBill(Bill bill){
+    public void DeleteBill(Bill bill) {
         DatabaseReference myRef = databaseBill.child(bill.getId());
         /*String Id = myRef.getKey();
         myRef.child(Id).removeValue();*/
@@ -635,15 +617,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // Update a Bill in the database
-    public void UpdateBill(Bill bill){
+    public void UpdateBill(Bill bill) {
         DatabaseReference myRef = databaseBill.child(bill.getId());
         myRef.setValue(bill);
         Toast.makeText(this, "modified", Toast.LENGTH_LONG).show();
     }
 
     // Get all the Bill in 'bills' ArrayList, used to display them in the ListView
-    public void GetAllBills (Map<String,Object> allBills)
-    {
+    public void GetAllBills(Map<String, Object> allBills) {
         bills.clear();
         if (allBills != null) {
             for (Map.Entry<String, Object> bill : allBills.entrySet()) {
@@ -659,8 +640,7 @@ public class MainActivity extends AppCompatActivity {
                 Bill newBill = new Bill(price, place, date, folder, path);
                 newBill.setId(id);
                 bills.add(newBill);
-                if (!FOLDERS.contains(folder))
-                {
+                if (!FOLDERS.contains(folder)) {
                     FOLDERS.add(folder);
                 }
             }
@@ -669,8 +649,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // Get an object Bill from the data got from the database
-    public Bill getBillFromDataSnapshot(DataSnapshot dataSnapshot)
-    {
+    public Bill getBillFromDataSnapshot(DataSnapshot dataSnapshot) {
         Map singleBill = (Map) dataSnapshot.getValue();
 
         String place = singleBill.get("place").toString();
@@ -681,23 +660,20 @@ public class MainActivity extends AppCompatActivity {
         float price = (float) Float.parseFloat(singleBill.get("price").toString());
         Bill newBill = new Bill(price, place, date, folder, path);
         newBill.setId(id);
+        Toast.makeText(this, "Place : " + place + folder + id, Toast.LENGTH_LONG).show();
         return newBill;
     }
 
-    public void DeleteFolder(String folder){
+    public void DeleteFolder(String folder) {
         /* Si existe pas, créée un dossier nommé *folder */
     }
 
 
-    public void SyncDatabase(String userId)
-    {
+    public void SyncDatabase(String userId) {
         FOLDERS.clear();
         // Connexion to Firebase
-        Toast.makeText(getBaseContext(), "UID : "+userId, Toast.LENGTH_LONG).show();
-        if (FirebaseDatabase.getInstance().getReference().child(userId) == null)
-        {
-            FirebaseDatabase.getInstance().getReference().child(userId).push();
-        }
+        Toast.makeText(getBaseContext(), "UID : " + userId, Toast.LENGTH_LONG).show();
+        FirebaseDatabase.getInstance().getReference().child(userId).push();
         databaseBill = FirebaseDatabase.getInstance().getReference().child(userId);
         databaseBill.addChildEventListener(new ChildEventListener() {
             @Override
@@ -709,10 +685,8 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onChildChanged(DataSnapshot dataSnapshot, String s) {
-                for(Bill bill : bills)
-                {
-                    if (bill.getId().equals(getBillFromDataSnapshot(dataSnapshot).getId()))
-                    {
+                for (Bill bill : bills) {
+                    if (bill.getId().equals(getBillFromDataSnapshot(dataSnapshot).getId())) {
                         bills.remove(bill);
                         break;
                     }
@@ -730,6 +704,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onChildMoved(DataSnapshot dataSnapshot, String s) {
             }
+
             @Override
             public void onCancelled(DatabaseError databaseError) {
             }
@@ -769,50 +744,10 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(getBaseContext(), parent.getSelectedItem().toString() + " is selected", Toast.LENGTH_LONG).show();
                 changeFolder(parent.getSelectedItem().toString());
             }
+
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
             }
         });
-    }
-
-    public void getDataFromCalendarTable() {
-        if(FirebaseAuth.getInstance().getCurrentUser() != null){
-            Toast.makeText(this, "Je passe dans cette méthode de merde ", Toast.LENGTH_LONG).show();
-            Cursor cur = null;
-            ContentResolver cr = getContentResolver();
-
-            String[] mProjection = new String[] { CalendarContract.Events.CALENDAR_ID,
-                    CalendarContract.Events.TITLE,
-                    CalendarContract.Events.DESCRIPTION,
-                    CalendarContract.Events.DTSTART,
-                    CalendarContract.Events.DTEND,
-                    CalendarContract.Events.ALL_DAY,
-                    CalendarContract.Events.EVENT_LOCATION };
-
-            Calendar startTime = Calendar.getInstance();
-            startTime.set(2017,11,01,00,00);
-
-            Calendar endTime= Calendar.getInstance();
-            endTime.set(2017,12,05,00,00);
-
-            // the range is all data from 2014
-
-            String selection = "(( " + CalendarContract.Events.DTSTART + " >= " + startTime.getTimeInMillis() + " ) AND ( " + CalendarContract.Events.DTSTART + " <= " + endTime.getTimeInMillis() + " ))";
-
-            Cursor cursor = this.getBaseContext().getContentResolver()
-                    .query( CalendarContract.Events.CONTENT_URI, mProjection, selection, null, null );
-
-            // output the events
-
-            if (cursor.moveToFirst()) {
-                do {
-                    Toast.makeText( this.getApplicationContext(), "Title: " + cursor.getString(1) + " Start-Time: " + (new Date(cursor.getLong(3))).toString(), Toast.LENGTH_LONG ).show();
-                    calendar.setText((new Date(cursor.getLong(3))).toString());
-                } while ( cursor.moveToNext());
-            }
-        }
-        else{
-            Toast.makeText(this, "Not Connected", Toast.LENGTH_LONG).show();
-        }
     }
 }
