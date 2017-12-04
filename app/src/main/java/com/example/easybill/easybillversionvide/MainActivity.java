@@ -350,7 +350,6 @@ public class MainActivity extends AppCompatActivity {
                 // Successfully signed in
                 FirebaseUser user = auth.getCurrentUser();
 
-                Toast.makeText(getBaseContext(), user.getDisplayName() + " connected as " + user.getEmail(), Toast.LENGTH_LONG).show();
                 logOut.setEnabled(true);
                 logIn.setEnabled(false);
                 AjouterFacture.setEnabled(true);
@@ -358,7 +357,6 @@ public class MainActivity extends AppCompatActivity {
                 addFolder.setEnabled(true);
                 deleteFolder.setEnabled(true);
 
-<<<<<<< HEAD
                 SyncDatabase(user.getUid());
                 // creates the user in 'users' if it doesn't exist
                 DatabaseReference userChild = FirebaseDatabase.getInstance().getReference().child("users").child(user.getUid());
@@ -372,9 +370,6 @@ public class MainActivity extends AppCompatActivity {
                 String newuid = FirebaseDatabase.getInstance().getReference().child("users").child(user.getUid()).getKey().toString();
                 Toast.makeText(getBaseContext(), "New uid = "+newuid, Toast.LENGTH_LONG).show();
 
-
-=======
->>>>>>> 52e6612be6c142c4aaa47def11a14d32d68f23cd
             } else {
                 // Sign in failed, check response for error code
                 // ...
@@ -403,7 +398,7 @@ public class MainActivity extends AppCompatActivity {
 
     ////////////////////////////////////////////////////////////////////////////
     // Create a report when clicking on 'générer compte-rendu'
-    private void CreateReport(String filename) throws IOException {
+    private void CreateReport(String filename, String foldername) throws IOException {
         File dir = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS).toString());
         dir.mkdirs();
         File f = new File(dir, filename);
@@ -415,8 +410,13 @@ public class MainActivity extends AppCompatActivity {
             FileOutputStream fOut = new FileOutputStream(f);
             OutputStreamWriter osw = new OutputStreamWriter(fOut);
 
+            if (foldername.equals("-")) foldername = "Toutes les factures";
+
+            osw.write("# Liste des factures pour le dossier " + foldername + " : \n# \n");
+
+            float total = 0;
+
             for (Bill billToAdd : bills) {
-<<<<<<< HEAD
                 if (billToAdd.getFolder().equals(foldername) || foldername.equals("Toutes les factures")) {
 
                     total += billToAdd.getPrice();
@@ -433,28 +433,10 @@ public class MainActivity extends AppCompatActivity {
                             + " - " + billToAdd.getPath() + "\n";
                     // Write the string to the file
                     osw.write(line);
-=======
-                String prix = Float.toString(billToAdd.getPrice());
-                String chemin;
-                if (billToAdd.getPath() != "") {
-                    chemin = billToAdd.getPath();
-                } else {
-                    chemin = "N/C";
->>>>>>> 52e6612be6c142c4aaa47def11a14d32d68f23cd
                 }
-                String line = prix
-                        + '_' + billToAdd.getPlace()
-                        + '_' + billToAdd.getDate()
-                        + '_' + billToAdd.getFolder()
-                        + "_" + billToAdd.getPath() + "\n";
-                // Write the string to the file
-                Toast.makeText(getBaseContext(), line, Toast.LENGTH_LONG).show();
-                osw.write(line);
             }
 
-
-                   /* ensure that everything is
-                    * really written out and close */
+            osw.write("# \n# Total " + total);
 
             osw.flush();
             osw.close();
@@ -462,9 +444,7 @@ public class MainActivity extends AppCompatActivity {
         } catch (IOException ioe) {
             ioe.printStackTrace();
             Toast.makeText(getBaseContext(), "error writing file : " + ioe, Toast.LENGTH_LONG).show();
-
         }
-
     }
 
     public ArrayList<Bill> getBillsInFolder(String folder) {
@@ -497,7 +477,7 @@ public class MainActivity extends AppCompatActivity {
 
             case R.id.createReportFile:
                 try {
-                    CreateReport(reportFile);
+                    CreateReport(reportFile, spinnerFolder.getSelectedItem().toString());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -669,8 +649,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String s) {
                 String userMail = dataSnapshot.child("email").getValue().toString();
-                Log.d("EMail : ", userMail);
-                Log.d("Mail : ", mail);
                 if(userMail.equals(mail))
                 {
                     String toId = dataSnapshot.getKey();
@@ -784,27 +762,14 @@ public class MainActivity extends AppCompatActivity {
         return newBill;
     }
 
-<<<<<<< HEAD
-=======
-    public void DeleteFolder(String folder) {
-        /* Si existe pas, créée un dossier nommé *folder */
-    }
-
-
->>>>>>> 52e6612be6c142c4aaa47def11a14d32d68f23cd
     public void SyncDatabase(String userId) {
         FOLDERS.clear();
         // Connexion to Firebase
         Toast.makeText(getBaseContext(), "UID : " + userId, Toast.LENGTH_LONG).show();
-<<<<<<< HEAD
         if (FirebaseDatabase.getInstance().getReference().child(userId) == null) {
             FirebaseDatabase.getInstance().getReference().child(userId).push();
         }
         databaseBill = FirebaseDatabase.getInstance().getReference().child("bills").child(userId);
-=======
-        FirebaseDatabase.getInstance().getReference().child(userId).push();
-        databaseBill = FirebaseDatabase.getInstance().getReference().child(userId);
->>>>>>> 52e6612be6c142c4aaa47def11a14d32d68f23cd
         databaseBill.addChildEventListener(new ChildEventListener() {
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String s) {
@@ -879,62 +844,4 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
-<<<<<<< HEAD
-
-    public void getDataFromCalendarTable() {
-        if (FirebaseAuth.getInstance().getCurrentUser() != null) {
-            Toast.makeText(this, "Je passe dans cette méthode de merde ", Toast.LENGTH_LONG).show();
-            Cursor cur = null;
-            ContentResolver cr = getContentResolver();
-
-            String[] mProjection = new String[]{CalendarContract.Events.CALENDAR_ID,
-                    CalendarContract.Events.TITLE,
-                    CalendarContract.Events.DESCRIPTION,
-                    CalendarContract.Events.DTSTART,
-                    CalendarContract.Events.DTEND,
-                    CalendarContract.Events.ALL_DAY,
-                    CalendarContract.Events.EVENT_LOCATION};
-
-            Calendar startTime = Calendar.getInstance();
-            startTime.set(2017, 11, 01, 00, 00);
-
-            Calendar endTime = Calendar.getInstance();
-            endTime.set(2017, 12, 05, 00, 00);
-
-            // the range is all data from 2014
-
-            String selection = "(( " + CalendarContract.Events.DTSTART + " >= " + startTime.getTimeInMillis() + " ) AND ( " + CalendarContract.Events.DTSTART + " <= " + endTime.getTimeInMillis() + " ))";
-
-            if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.READ_CALENDAR) != PackageManager.PERMISSION_GRANTED) {
-                // TODO: Consider calling
-                //    ActivityCompat#requestPermissions
-                // here to request the missing permissions, and then overriding
-                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                //                                          int[] grantResults)
-                // to handle the case where the user grants the permission. See the documentation
-                // for ActivityCompat#requestPermissions for more details.
-
-                Toast.makeText( this.getApplicationContext(), "La permission d'accès à l'agenda est requise pour synchroniser vos évènements.", Toast.LENGTH_LONG ).show();
-                return;
-            }
-            Cursor cursor = this.getBaseContext().getContentResolver()
-                    .query(CalendarContract.Events.CONTENT_URI, mProjection, selection, null, null);
-
-            // output the events
-
-            if (cursor.moveToFirst()) {
-                do {
-                    Toast.makeText( this.getApplicationContext(), "Title: " + cursor.getString(1) + " Start-Time: " + (new Date(cursor.getLong(3))).toString(), Toast.LENGTH_LONG ).show();
-                    calendar.setText((new Date(cursor.getLong(3))).toString());
-                } while ( cursor.moveToNext());
-            }
-        }
-        else{
-            Toast.makeText(this, "Not Connected", Toast.LENGTH_LONG).show();
-        }
-    }
-
-
-=======
->>>>>>> 52e6612be6c142c4aaa47def11a14d32d68f23cd
 }
