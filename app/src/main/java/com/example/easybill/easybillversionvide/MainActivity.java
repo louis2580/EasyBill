@@ -90,6 +90,7 @@ public class MainActivity extends AppCompatActivity {
     static int UPDATE_FACTURE = 20;
     static int RC_SIGN_IN = 30;
     static int RC_SIGN_OUT = 40;
+    static int OCR_INTENT = 50;
 
 
     private GestureDetectorCompat gestureDetectorCompat;
@@ -222,6 +223,16 @@ public class MainActivity extends AppCompatActivity {
                 DeleteBill(listItem);
                 String currentFolder = spinnerFolder.getSelectedItem().toString();
                 changeFolder(currentFolder);
+                break;
+            case "Photo Facture":
+
+                if (listItem.getPath().equals("N/C")) return true;
+
+                Intent ocr = new Intent(
+                        MainActivity.this, photoFacture.class);
+                ocr.putExtra("PATH", listItem.getPath());
+                startActivityForResult(ocr, OCR_INTENT);
+
                 break;
             default:
                 break;

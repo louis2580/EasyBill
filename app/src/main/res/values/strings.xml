@@ -25,6 +25,7 @@
     <string-array name="menu">
         <item>Modifier</item>
         <item>Supprimer</item>
+        <item>Photo Facture</item>
     </string-array>
 
     <string-array name="menuPanelGauche">

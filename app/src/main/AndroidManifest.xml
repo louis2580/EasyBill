@@ -37,6 +37,10 @@
             android:name=".add_folder"
             android:label="@string/addFolder" >
         </activity>
+        <activity
+            android:name=".photoFacture"
+            android:label="@string/addFolder" >
+        </activity>
         <!-- Services -->
         <service android:name=".MyFirebaseMessagingService">
             <intent-filter>
