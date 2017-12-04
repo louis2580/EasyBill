@@ -2,9 +2,11 @@ package com.example.easybill.easybillversionvide;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.ContentResolver;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.os.Environment;
 import android.preference.PreferenceManager;
@@ -12,6 +14,7 @@ import android.provider.CalendarContract;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -30,6 +33,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
@@ -48,6 +52,7 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
 import java.io.BufferedReader;
@@ -64,9 +69,9 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
-
 
 
 public class MainActivity extends AppCompatActivity {
@@ -89,6 +94,7 @@ public class MainActivity extends AppCompatActivity {
     MenuItem logOut;
     MenuItem addFolder;
     MenuItem deleteFolder;
+    MenuItem shareFolder;
     MenuItem createReportFile;
 
     ////////////////////////////////////////////////////////////////////////////// Calendrier : à supprimer
@@ -135,24 +141,21 @@ public class MainActivity extends AppCompatActivity {
         newFolder.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-            //switch to another activity
-            Intent addFolder = new Intent(MainActivity.this, add_folder.class);
-            startActivity(addFolder);
+                //switch to another activity
+                Intent addFolder = new Intent(MainActivity.this, add_folder.class);
+                startActivity(addFolder);
             }
         });
 
         ////////////////////////////////////////////////////////////////////
         // checks if a user is already logged
 
-        if (auth.getCurrentUser() == null)
-        {
+        if (auth.getCurrentUser() == null) {
             // no one connected
             AjouterFacture.setEnabled(false);
             newFolder.setEnabled(false);
 
-        }
-        else
-        {
+        } else {
             SyncDatabase(auth.getCurrentUser().getUid());
         }
 
@@ -172,7 +175,6 @@ public class MainActivity extends AppCompatActivity {
         /////////////////////////////////////////////////
         gestureDetectorCompat = new GestureDetectorCompat(this, new MyGestureListener());
     }
-
 
 
     /////////////////////////////////////////////////////////////////////////////
@@ -235,8 +237,7 @@ public class MainActivity extends AppCompatActivity {
         return super.onTouchEvent(event);
     }
 
-    public void UpdateBillList()
-    {
+    public void UpdateBillList() {
 
         changeFolder(spinnerFolder.getSelectedItem().toString());
     }
@@ -282,27 +283,27 @@ public class MainActivity extends AppCompatActivity {
         MenuInflater menuInflater = getMenuInflater();
         menuInflater.inflate(R.menu.main, menu);
 
-        logIn = menu.findItem (R.id.logIn);
+        logIn = menu.findItem(R.id.logIn);
         logOut = menu.findItem(R.id.logOut);
         addFolder = menu.findItem(R.id.addFolder);
         deleteFolder = menu.findItem(R.id.removeFolder);
+        shareFolder = menu.findItem(R.id.shareFolder);
         createReportFile = menu.findItem(R.id.createReportFile);
 
-        if (auth.getCurrentUser() == null)
-        {
+        if (auth.getCurrentUser() == null) {
             // no one connected
             logIn.setEnabled(true);
             logOut.setEnabled(false);
             deleteFolder.setEnabled(false);
+            shareFolder.setEnabled(false);
             addFolder.setEnabled(false);
-        } else
-        {
+        } else {
             logIn.setEnabled(false);
             logOut.setEnabled(true);
             deleteFolder.setEnabled(true);
+            shareFolder.setEnabled(true);
             addFolder.setEnabled(true);
         }
-
         return super.onCreateOptionsMenu(menu);
     }
 
@@ -346,7 +347,7 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == RC_SIGN_IN) {
             IdpResponse response = IdpResponse.fromResultIntent(data);
 
-            if (resultCode == RESULT_OK){
+            if (resultCode == RESULT_OK) {
                 // Successfully signed in
                 FirebaseUser user = auth.getCurrentUser();
 
@@ -359,6 +360,18 @@ public class MainActivity extends AppCompatActivity {
                 deleteFolder.setEnabled(true);
 
                 SyncDatabase(user.getUid());
+                // creates the user in 'users' if it doesn't exist
+                DatabaseReference userChild = FirebaseDatabase.getInstance().getReference().child("users").child(user.getUid());
+
+                Map<String, String> newUser = new HashMap<>();
+                newUser.put("uid", user.getUid());
+                newUser.put("email", user.getEmail());
+                newUser.put("name", user.getDisplayName());
+                userChild.setValue(newUser);
+
+                String newuid = FirebaseDatabase.getInstance().getReference().child("users").child(user.getUid()).getKey().toString();
+                Toast.makeText(getBaseContext(), "New uid = "+newuid, Toast.LENGTH_LONG).show();
+
 
             } else {
                 // Sign in failed, check response for error code
@@ -367,10 +380,8 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        if (requestCode == RC_SIGN_OUT)
-        {
-            if (resultCode == RESULT_OK)
-            {
+        if (requestCode == RC_SIGN_OUT) {
+            if (resultCode == RESULT_OK) {
                 Toast.makeText(getBaseContext(), "Vous avez été déconnecté", Toast.LENGTH_LONG).show();
                 logIn.setEnabled(true);
                 logOut.setEnabled(false);
@@ -378,6 +389,7 @@ public class MainActivity extends AppCompatActivity {
                 newFolder.setEnabled(false);
                 addFolder.setEnabled(false);
                 deleteFolder.setEnabled(false);
+                shareFolder.setEnabled(false);
 
                 ////////////////////////////////////////////////////////////////////////
                 // Sign out of firebase
@@ -394,7 +406,7 @@ public class MainActivity extends AppCompatActivity {
         dir.mkdirs();
         File f = new File(dir, filename);
         f.createNewFile();
-        Toast.makeText(getBaseContext(), "Save at : " + f.getPath(), Toast.LENGTH_LONG).show();
+        Toast.makeText(getBaseContext(), "Sauvegardé sous : \n" + f.getPath(), Toast.LENGTH_LONG).show();
 
         try {
 
@@ -423,7 +435,6 @@ public class MainActivity extends AppCompatActivity {
                             + " - " + billToAdd.getDate()
                             + " - " + billToAdd.getPath() + "\n";
                     // Write the string to the file
-                    Toast.makeText(getBaseContext(), line, Toast.LENGTH_LONG).show();
                     osw.write(line);
                 }
             }
@@ -449,10 +460,8 @@ public class MainActivity extends AppCompatActivity {
         return billsInFolder;
     }
 
-    public void changeFolder(String folder)
-    {
-        if (!folder.equals("-"))
-        {
+    public void changeFolder(String folder) {
+        if (!folder.equals("-")) {
             ArrayList<Bill> folderArray = getBillsInFolder(folder);
             billAdapter = new BillAdapter(this, R.layout.liste_facture, folderArray);
             billList.setAdapter(billAdapter);
@@ -461,12 +470,13 @@ public class MainActivity extends AppCompatActivity {
             billList.setAdapter(billAdapter);
         }
     }
+
     /////////////////////////////////////////////////////
     // When selecting an option in the menu
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Toast.makeText(getBaseContext(), "ok" +item.getItemId() + " . " + item.toString() , Toast.LENGTH_LONG).show();
-        switch(item.getItemId()) {
+        switch (item.getItemId()) {
 
             case R.id.createReportFile:
                 try {
@@ -480,13 +490,13 @@ public class MainActivity extends AppCompatActivity {
             case R.id.logIn:
                 //switch to another activity
                 startActivityForResult(
-                // Get an instance of AuthUI based on the default app
-                    AuthUI.getInstance().createSignInIntentBuilder().setAvailableProviders(
-                        Arrays.asList(new AuthUI.IdpConfig.Builder(AuthUI.EMAIL_PROVIDER).build(),
-                                new AuthUI.IdpConfig.Builder(AuthUI.GOOGLE_PROVIDER).build(),
-                                new AuthUI.IdpConfig.Builder(AuthUI.FACEBOOK_PROVIDER).build()))
-                        .build(),
-                    RC_SIGN_IN);
+                        // Get an instance of AuthUI based on the default app
+                        AuthUI.getInstance().createSignInIntentBuilder().setAvailableProviders(
+                                Arrays.asList(new AuthUI.IdpConfig.Builder(AuthUI.EMAIL_PROVIDER).build(),
+                                        new AuthUI.IdpConfig.Builder(AuthUI.GOOGLE_PROVIDER).build(),
+                                        new AuthUI.IdpConfig.Builder(AuthUI.FACEBOOK_PROVIDER).build()))
+                                .build(),
+                        RC_SIGN_IN);
                 return true;
 
             // Log In
@@ -503,6 +513,41 @@ public class MainActivity extends AppCompatActivity {
                 Intent addFolder = new Intent(MainActivity.this, add_folder.class);
                 startActivity(addFolder);
                 return true;
+
+            case R.id.shareFolder:
+                // Share folder with an other user
+
+                if (spinnerFolder.getSelectedItem().toString().equals("-"))
+                {
+                    Toast.makeText(getBaseContext(), "Sélectionner un dossier pour effectuer cette action", Toast.LENGTH_LONG).show();
+                    return true;
+                }
+
+                final Dialog shareDialog = new Dialog(MainActivity.this);
+                shareDialog.setContentView(R.layout.share_folder);
+                shareDialog.setTitle("Partager " + spinnerFolder.getSelectedItem().toString());
+                shareDialog.setCancelable(true);
+                shareDialog.show();
+                Button shareValidate = (Button)shareDialog.findViewById(R.id.shareValidate);
+                Button shareCancel = (Button)shareDialog.findViewById(R.id.shareCancel);
+                final TextView textMail = shareDialog.findViewById(R.id.targetMail);
+
+                shareValidate.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View arg0) {
+                        if (!textMail.getText().toString().equals("")) {
+                            ShareFolder(textMail.getText().toString(), spinnerFolder.getSelectedItem().toString());
+                            shareDialog.dismiss();
+                        }
+                    }
+                });
+                shareCancel.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        shareDialog.cancel();
+                    }
+                });
+                break;
 
             // Remove a folder
             case R.id.removeFolder:
@@ -555,12 +600,8 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(getBaseContext(), "Sélectionner un dossier pour effectuer cette action", Toast.LENGTH_LONG).show();
                     }
                 }
-
                 return true;
-
-
         }
-
         return super.onOptionsItemSelected(item);
     }
 
@@ -599,12 +640,56 @@ public class MainActivity extends AppCompatActivity {
         lastAlert.show();
     }
 
+    // When clicking on share folder, and enter a valid mail adresse
+    public void ShareFolder(final String mail, String folderToShare)
+    {
+        final DatabaseReference usersRef = FirebaseDatabase.getInstance().getReference();
+        Query targetUidQuery = usersRef.child("users");
+
+        final ArrayList<Bill> billsToCopy = getBillsInFolder(folderToShare);
+
+        targetUidQuery.addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+                String userMail = dataSnapshot.child("email").getValue().toString();
+                Log.d("EMail : ", userMail);
+                Log.d("Mail : ", mail);
+                if(userMail.equals(mail))
+                {
+                    String toId = dataSnapshot.getKey();
+                    Log.d("toId = ", toId);
+                    for(Bill bill : billsToCopy)
+                    {
+                        String newKey = usersRef.child("bills").child(toId).push().getKey();
+                        bill.setPath("N/C");
+                        bill.setId(newKey);
+                        usersRef.child("bills").child(toId).child(newKey).setValue(bill);
+                        Log.d("Bill id : ", newKey);
+                    }
+                    Toast.makeText(getBaseContext(), "Dossier transféré avec succès.", Toast.LENGTH_LONG).show();
+                }
+            }
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+            }
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+            }
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+            }
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+            }
+        });
+    }
+
+
     /////////////////////////////////////////////////////////////////
     // Get all the folders
     public ArrayList<String> getAllFolders() {
         ArrayList<String> allFolders = new ArrayList<String>();
-        for(Bill bill : bills)
-        {
+        for (Bill bill : bills) {
             // Add the folder if it's not already added
             if (!allFolders.contains(bill.getFolder())) allFolders.add(bill.getFolder());
         }
@@ -614,7 +699,7 @@ public class MainActivity extends AppCompatActivity {
     /* Database*/
 
     // Add a Bill to the database
-    public void AddBill(Bill bill){
+    public void AddBill(Bill bill) {
         /* Add folder if is not created*/
         // Write a message to the database
         DatabaseReference myRef = databaseBill;
@@ -625,7 +710,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // Delete a bill from the database
-    public void DeleteBill(Bill bill){
+    public void DeleteBill(Bill bill) {
         DatabaseReference myRef = databaseBill.child(bill.getId());
         /*String Id = myRef.getKey();
         myRef.child(Id).removeValue();*/
@@ -635,15 +720,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // Update a Bill in the database
-    public void UpdateBill(Bill bill){
+    public void UpdateBill(Bill bill) {
         DatabaseReference myRef = databaseBill.child(bill.getId());
         myRef.setValue(bill);
         Toast.makeText(this, "modified", Toast.LENGTH_LONG).show();
     }
 
     // Get all the Bill in 'bills' ArrayList, used to display them in the ListView
-    public void GetAllBills (Map<String,Object> allBills)
-    {
+    public void GetAllBills(Map<String, Object> allBills) {
         bills.clear();
         if (allBills != null) {
             for (Map.Entry<String, Object> bill : allBills.entrySet()) {
@@ -659,8 +743,7 @@ public class MainActivity extends AppCompatActivity {
                 Bill newBill = new Bill(price, place, date, folder, path);
                 newBill.setId(id);
                 bills.add(newBill);
-                if (!FOLDERS.contains(folder))
-                {
+                if (!FOLDERS.contains(folder)) {
                     FOLDERS.add(folder);
                 }
             }
@@ -669,8 +752,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // Get an object Bill from the data got from the database
-    public Bill getBillFromDataSnapshot(DataSnapshot dataSnapshot)
-    {
+    public Bill getBillFromDataSnapshot(DataSnapshot dataSnapshot) {
         Map singleBill = (Map) dataSnapshot.getValue();
 
         String place = singleBill.get("place").toString();
@@ -684,21 +766,14 @@ public class MainActivity extends AppCompatActivity {
         return newBill;
     }
 
-    public void DeleteFolder(String folder){
-        /* Si existe pas, créée un dossier nommé *folder */
-    }
-
-
-    public void SyncDatabase(String userId)
-    {
+    public void SyncDatabase(String userId) {
         FOLDERS.clear();
         // Connexion to Firebase
-        Toast.makeText(getBaseContext(), "UID : "+userId, Toast.LENGTH_LONG).show();
-        if (FirebaseDatabase.getInstance().getReference().child(userId) == null)
-        {
+        Toast.makeText(getBaseContext(), "UID : " + userId, Toast.LENGTH_LONG).show();
+        if (FirebaseDatabase.getInstance().getReference().child(userId) == null) {
             FirebaseDatabase.getInstance().getReference().child(userId).push();
         }
-        databaseBill = FirebaseDatabase.getInstance().getReference().child(userId);
+        databaseBill = FirebaseDatabase.getInstance().getReference().child("bills").child(userId);
         databaseBill.addChildEventListener(new ChildEventListener() {
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String s) {
@@ -709,10 +784,8 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onChildChanged(DataSnapshot dataSnapshot, String s) {
-                for(Bill bill : bills)
-                {
-                    if (bill.getId().equals(getBillFromDataSnapshot(dataSnapshot).getId()))
-                    {
+                for (Bill bill : bills) {
+                    if (bill.getId().equals(getBillFromDataSnapshot(dataSnapshot).getId())) {
                         bills.remove(bill);
                         break;
                     }
@@ -730,6 +803,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onChildMoved(DataSnapshot dataSnapshot, String s) {
             }
+
             @Override
             public void onCancelled(DatabaseError databaseError) {
             }
@@ -766,9 +840,9 @@ public class MainActivity extends AppCompatActivity {
         spinnerFolder.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                Toast.makeText(getBaseContext(), parent.getSelectedItem().toString() + " is selected", Toast.LENGTH_LONG).show();
                 changeFolder(parent.getSelectedItem().toString());
             }
+
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
             }
@@ -776,31 +850,43 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void getDataFromCalendarTable() {
-        if(FirebaseAuth.getInstance().getCurrentUser() != null){
+        if (FirebaseAuth.getInstance().getCurrentUser() != null) {
             Toast.makeText(this, "Je passe dans cette méthode de merde ", Toast.LENGTH_LONG).show();
             Cursor cur = null;
             ContentResolver cr = getContentResolver();
 
-            String[] mProjection = new String[] { CalendarContract.Events.CALENDAR_ID,
+            String[] mProjection = new String[]{CalendarContract.Events.CALENDAR_ID,
                     CalendarContract.Events.TITLE,
                     CalendarContract.Events.DESCRIPTION,
                     CalendarContract.Events.DTSTART,
                     CalendarContract.Events.DTEND,
                     CalendarContract.Events.ALL_DAY,
-                    CalendarContract.Events.EVENT_LOCATION };
+                    CalendarContract.Events.EVENT_LOCATION};
 
             Calendar startTime = Calendar.getInstance();
-            startTime.set(2017,11,01,00,00);
+            startTime.set(2017, 11, 01, 00, 00);
 
-            Calendar endTime= Calendar.getInstance();
-            endTime.set(2017,12,05,00,00);
+            Calendar endTime = Calendar.getInstance();
+            endTime.set(2017, 12, 05, 00, 00);
 
             // the range is all data from 2014
 
             String selection = "(( " + CalendarContract.Events.DTSTART + " >= " + startTime.getTimeInMillis() + " ) AND ( " + CalendarContract.Events.DTSTART + " <= " + endTime.getTimeInMillis() + " ))";
 
+            if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.READ_CALENDAR) != PackageManager.PERMISSION_GRANTED) {
+                // TODO: Consider calling
+                //    ActivityCompat#requestPermissions
+                // here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for ActivityCompat#requestPermissions for more details.
+
+                Toast.makeText( this.getApplicationContext(), "La permission d'accès à l'agenda est requise pour synchroniser vos évènements.", Toast.LENGTH_LONG ).show();
+                return;
+            }
             Cursor cursor = this.getBaseContext().getContentResolver()
-                    .query( CalendarContract.Events.CONTENT_URI, mProjection, selection, null, null );
+                    .query(CalendarContract.Events.CONTENT_URI, mProjection, selection, null, null);
 
             // output the events
 
@@ -815,4 +901,6 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Not Connected", Toast.LENGTH_LONG).show();
         }
     }
+
+
 }
