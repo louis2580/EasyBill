@@ -61,6 +61,11 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <service
+            android:name=".CalendarService"
+            android:exported="false">
+        </service>
     </application>
     <uses-feature android:name="android.hardware.camera"
         android:required="true" />

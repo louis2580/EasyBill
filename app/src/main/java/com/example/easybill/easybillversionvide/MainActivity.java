@@ -4,10 +4,12 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.provider.CalendarContract;
@@ -55,6 +57,8 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
+import org.w3c.dom.Text;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -81,10 +85,12 @@ public class MainActivity extends AppCompatActivity {
     DatabaseReference databaseBill;
 
     static ArrayList<String> FOLDERS = new ArrayList<String>();
+    static ArrayList<String> NOMSEVENTS = new ArrayList<String>();
     static int ADD_FACTURE = 10;
     static int UPDATE_FACTURE = 20;
     static int RC_SIGN_IN = 30;
     static int RC_SIGN_OUT = 40;
+
 
     private GestureDetectorCompat gestureDetectorCompat;
     private String reportFile = "report.txt";
@@ -97,10 +103,6 @@ public class MainActivity extends AppCompatActivity {
     MenuItem shareFolder;
     MenuItem createReportFile;
 
-    ////////////////////////////////////////////////////////////////////////////// Calendrier : à supprimer
-    TextView calendar;
-    Button getCalendar;
-
     Spinner spinnerFolder;
     ArrayAdapter<String> adapter;
 
@@ -111,25 +113,15 @@ public class MainActivity extends AppCompatActivity {
     FloatingActionButton AjouterFacture;
     Button newFolder;
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
         // Get the buttons
         AjouterFacture = (FloatingActionButton) findViewById(R.id.AjouterFacture);
         newFolder = findViewById(R.id.newFolder);
-
-        ////////////////////////////////////////////////////////////////////////////// Calendrier : à supprimer
-        calendar = findViewById(R.id.caledndar);
-        getCalendar = findViewById(R.id.getCalendar);
-        getCalendar.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                getDataFromCalendarTable();
-            }
-        });
 
         auth = FirebaseAuth.getInstance();
 
@@ -158,6 +150,13 @@ public class MainActivity extends AppCompatActivity {
         } else {
             SyncDatabase(auth.getCurrentUser().getUid());
         }
+
+        ///////////////////////////////////////////////////////////////////////////
+        // Start the push notification service to chack the agenda
+
+        Intent mServiceIntent = new Intent(MainActivity.this, CalendarService.class);
+        // Starts the IntentService
+        MainActivity.this.startService(mServiceIntent);
 
         ///////////////////////////////////////////////////////////////////////////
         // When clicking the floating Add button
@@ -359,6 +358,7 @@ public class MainActivity extends AppCompatActivity {
                 addFolder.setEnabled(true);
                 deleteFolder.setEnabled(true);
 
+<<<<<<< HEAD
                 SyncDatabase(user.getUid());
                 // creates the user in 'users' if it doesn't exist
                 DatabaseReference userChild = FirebaseDatabase.getInstance().getReference().child("users").child(user.getUid());
@@ -373,6 +373,8 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(getBaseContext(), "New uid = "+newuid, Toast.LENGTH_LONG).show();
 
 
+=======
+>>>>>>> 52e6612be6c142c4aaa47def11a14d32d68f23cd
             } else {
                 // Sign in failed, check response for error code
                 // ...
@@ -401,7 +403,7 @@ public class MainActivity extends AppCompatActivity {
 
     ////////////////////////////////////////////////////////////////////////////
     // Create a report when clicking on 'générer compte-rendu'
-    private void CreateReport(String filename, String foldername) throws IOException {
+    private void CreateReport(String filename) throws IOException {
         File dir = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS).toString());
         dir.mkdirs();
         File f = new File(dir, filename);
@@ -413,13 +415,8 @@ public class MainActivity extends AppCompatActivity {
             FileOutputStream fOut = new FileOutputStream(f);
             OutputStreamWriter osw = new OutputStreamWriter(fOut);
 
-            if (foldername.equals("-")) foldername = "Toutes les factures";
-
-            osw.write("# Liste des factures pour le dossier " + foldername + " : \n# \n");
-
-            float total = 0;
-
             for (Bill billToAdd : bills) {
+<<<<<<< HEAD
                 if (billToAdd.getFolder().equals(foldername) || foldername.equals("Toutes les factures")) {
 
                     total += billToAdd.getPrice();
@@ -436,10 +433,28 @@ public class MainActivity extends AppCompatActivity {
                             + " - " + billToAdd.getPath() + "\n";
                     // Write the string to the file
                     osw.write(line);
+=======
+                String prix = Float.toString(billToAdd.getPrice());
+                String chemin;
+                if (billToAdd.getPath() != "") {
+                    chemin = billToAdd.getPath();
+                } else {
+                    chemin = "N/C";
+>>>>>>> 52e6612be6c142c4aaa47def11a14d32d68f23cd
                 }
+                String line = prix
+                        + '_' + billToAdd.getPlace()
+                        + '_' + billToAdd.getDate()
+                        + '_' + billToAdd.getFolder()
+                        + "_" + billToAdd.getPath() + "\n";
+                // Write the string to the file
+                Toast.makeText(getBaseContext(), line, Toast.LENGTH_LONG).show();
+                osw.write(line);
             }
 
-            osw.write("# \n# Total " + total);
+
+                   /* ensure that everything is
+                    * really written out and close */
 
             osw.flush();
             osw.close();
@@ -447,7 +462,9 @@ public class MainActivity extends AppCompatActivity {
         } catch (IOException ioe) {
             ioe.printStackTrace();
             Toast.makeText(getBaseContext(), "error writing file : " + ioe, Toast.LENGTH_LONG).show();
+
         }
+
     }
 
     public ArrayList<Bill> getBillsInFolder(String folder) {
@@ -480,7 +497,7 @@ public class MainActivity extends AppCompatActivity {
 
             case R.id.createReportFile:
                 try {
-                    CreateReport(reportFile, spinnerFolder.getSelectedItem().toString());
+                    CreateReport(reportFile);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -763,17 +780,31 @@ public class MainActivity extends AppCompatActivity {
         float price = (float) Float.parseFloat(singleBill.get("price").toString());
         Bill newBill = new Bill(price, place, date, folder, path);
         newBill.setId(id);
+        Toast.makeText(this, "Place : " + place + folder + id, Toast.LENGTH_LONG).show();
         return newBill;
     }
 
+<<<<<<< HEAD
+=======
+    public void DeleteFolder(String folder) {
+        /* Si existe pas, créée un dossier nommé *folder */
+    }
+
+
+>>>>>>> 52e6612be6c142c4aaa47def11a14d32d68f23cd
     public void SyncDatabase(String userId) {
         FOLDERS.clear();
         // Connexion to Firebase
         Toast.makeText(getBaseContext(), "UID : " + userId, Toast.LENGTH_LONG).show();
+<<<<<<< HEAD
         if (FirebaseDatabase.getInstance().getReference().child(userId) == null) {
             FirebaseDatabase.getInstance().getReference().child(userId).push();
         }
         databaseBill = FirebaseDatabase.getInstance().getReference().child("bills").child(userId);
+=======
+        FirebaseDatabase.getInstance().getReference().child(userId).push();
+        databaseBill = FirebaseDatabase.getInstance().getReference().child(userId);
+>>>>>>> 52e6612be6c142c4aaa47def11a14d32d68f23cd
         databaseBill.addChildEventListener(new ChildEventListener() {
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String s) {
@@ -848,6 +879,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+<<<<<<< HEAD
 
     public void getDataFromCalendarTable() {
         if (FirebaseAuth.getInstance().getCurrentUser() != null) {
@@ -903,4 +935,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+=======
+>>>>>>> 52e6612be6c142c4aaa47def11a14d32d68f23cd
 }
