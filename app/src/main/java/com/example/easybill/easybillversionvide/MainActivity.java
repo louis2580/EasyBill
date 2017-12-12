@@ -173,7 +173,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         /////////////////////////////////////////////////
-        gestureDetectorCompat = new GestureDetectorCompat(this, new MyGestureListener());
+       // gestureDetectorCompat = new GestureDetectorCompat(this, new MyGestureListener());
     }
 
 
@@ -224,9 +224,13 @@ public class MainActivity extends AppCompatActivity {
                 String currentFolder = spinnerFolder.getSelectedItem().toString();
                 changeFolder(currentFolder);
                 break;
-            case "Photo Facture":
+            case "Photo facture":
 
-                if (listItem.getPath().equals("N/C")) return true;
+                if (listItem.getPath().equals("N/C"))
+                {
+                    Toast.makeText(getBaseContext(), "Pas d'image associée à cette facture", Toast.LENGTH_LONG).show();
+                    return true;
+                }
 
                 Intent ocr = new Intent(
                         MainActivity.this, photoFacture.class);
@@ -249,10 +253,41 @@ public class MainActivity extends AppCompatActivity {
 
     public void UpdateBillList() {
 
-        changeFolder(spinnerFolder.getSelectedItem().toString());
+        bills.clear();
+        Log.d("bill :", " ==> clear");
+        DatabaseReference userbills = FirebaseDatabase.getInstance().getReference();
+        Query query = userbills.child("bills").child(auth.getCurrentUser().getUid());
+        query.addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+                bills.add(getBillFromDataSnapshot(dataSnapshot));
+                Log.d("adding : ", dataSnapshot.toString());
+                changeFolder(spinnerFolder.getSelectedItem().toString());
+            }
+
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
     }
 
-    ////////////////////////////////////////////////////////////////////////////
+    /*////////////////////////////////////////////////////////////////////////////
     class MyGestureListener extends GestureDetector.SimpleOnGestureListener {
         //handle 'swipe left' action only
 
@@ -260,16 +295,13 @@ public class MainActivity extends AppCompatActivity {
         public boolean onFling(MotionEvent event1, MotionEvent event2,
                                float velocityX, float velocityY) {
 
-         /*
+         *//*
          Toast.makeText(getBaseContext(),
           event1.toString() + "\n\n" +event2.toString(),
           Toast.LENGTH_SHORT).show();
-         */
+         *//*
 
             if (event2.getX() < event1.getX()) {
-                Toast.makeText(getBaseContext(),
-                        "Swipe left - startActivity()",
-                        Toast.LENGTH_SHORT).show();
 
                 //switch another activity
                 Intent intent = new Intent(
@@ -278,7 +310,7 @@ public class MainActivity extends AppCompatActivity {
             }
             return true;
         }
-    }
+    }*/
 
 
     ////////////////////////////////////////////////////////////////////////////
@@ -366,6 +398,7 @@ public class MainActivity extends AppCompatActivity {
                 AjouterFacture.setEnabled(true);
                 newFolder.setEnabled(true);
                 addFolder.setEnabled(true);
+                shareFolder.setEnabled(true);
                 deleteFolder.setEnabled(true);
 
                 SyncDatabase(user.getUid());
@@ -379,7 +412,6 @@ public class MainActivity extends AppCompatActivity {
                 userChild.setValue(newUser);
 
                 String newuid = FirebaseDatabase.getInstance().getReference().child("users").child(user.getUid()).getKey().toString();
-                Toast.makeText(getBaseContext(), "New uid = "+newuid, Toast.LENGTH_LONG).show();
 
             } else {
                 // Sign in failed, check response for error code
@@ -712,7 +744,6 @@ public class MainActivity extends AppCompatActivity {
         String Id = myRef.push().getKey();
         bill.setId(Id);
         myRef.child(Id).setValue(bill);
-        Toast.makeText(this, "added", Toast.LENGTH_LONG).show();
     }
 
     // Delete a bill from the database
@@ -721,15 +752,12 @@ public class MainActivity extends AppCompatActivity {
         /*String Id = myRef.getKey();
         myRef.child(Id).removeValue();*/
         myRef.removeValue();
-        myRef.child(bill.getId()).setValue(null);
-        Toast.makeText(this, "deleted", Toast.LENGTH_LONG).show();
     }
 
     // Update a Bill in the database
     public void UpdateBill(Bill bill) {
         DatabaseReference myRef = databaseBill.child(bill.getId());
         myRef.setValue(bill);
-        Toast.makeText(this, "modified", Toast.LENGTH_LONG).show();
     }
 
     // Get all the Bill in 'bills' ArrayList, used to display them in the ListView
@@ -769,14 +797,12 @@ public class MainActivity extends AppCompatActivity {
         float price = (float) Float.parseFloat(singleBill.get("price").toString());
         Bill newBill = new Bill(price, place, date, folder, path);
         newBill.setId(id);
-        Toast.makeText(this, "Place : " + place + folder + id, Toast.LENGTH_LONG).show();
         return newBill;
     }
 
     public void SyncDatabase(String userId) {
         FOLDERS.clear();
         // Connexion to Firebase
-        Toast.makeText(getBaseContext(), "UID : " + userId, Toast.LENGTH_LONG).show();
         if (FirebaseDatabase.getInstance().getReference().child(userId) == null) {
             FirebaseDatabase.getInstance().getReference().child(userId).push();
         }
@@ -785,8 +811,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String s) {
 
-                bills.add(getBillFromDataSnapshot(dataSnapshot));
-                UpdateBillList();
             }
 
             @Override
@@ -798,12 +822,16 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
                 bills.add(getBillFromDataSnapshot(dataSnapshot));
-                UpdateBillList();
+                //UpdateBillList();
             }
 
             @Override
             public void onChildRemoved(DataSnapshot dataSnapshot) {
                 bills.remove(getBillFromDataSnapshot(dataSnapshot));
+                for (Bill bill : bills)
+                {
+                    Log.d("Bill : ", bill.getPlace());
+                }
                 UpdateBillList();
             }
 

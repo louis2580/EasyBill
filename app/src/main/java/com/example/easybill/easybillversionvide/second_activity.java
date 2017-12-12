@@ -46,9 +46,6 @@ public class second_activity extends AppCompatActivity { // Multi-portefeuille
          */
 
             if(event2.getX() > event1.getX()){
-                Toast.makeText(getBaseContext(),
-                        "Swipe right - finish()",
-                        Toast.LENGTH_SHORT).show();
 
                 finish();
             }

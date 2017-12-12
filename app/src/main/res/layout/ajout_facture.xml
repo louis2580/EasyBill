@@ -107,6 +107,13 @@
                 android:maxLength="30"
                 android:textColorLink="@color/colorPrimary" />
 
+            <Button
+                android:id="@+id/map"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Carte" />
+
         </LinearLayout>
 
         <LinearLayout

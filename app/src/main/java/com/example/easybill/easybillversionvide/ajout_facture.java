@@ -26,6 +26,11 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
+import com.google.android.gms.common.GooglePlayServicesRepairableException;
+import com.google.android.gms.location.places.Place;
+import com.google.android.gms.location.places.ui.PlacePicker;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Calendar;
@@ -42,7 +47,8 @@ public class ajout_facture extends AppCompatActivity {
     ArrayAdapter<CharSequence> adapterDevise;
     ArrayAdapter<String> adapterDossier;
 
-    static final int REQUEST_TAKE_PHOTO = 1;
+    static final int REQUEST_TAKE_PHOTO = 10;
+    int PLACE_PICKER_REQUEST = 20;
     // The path to the photo
     private String mCurrentPhotoPath;
     // Get the ImageView
@@ -73,6 +79,9 @@ public class ajout_facture extends AppCompatActivity {
     // Create the File where the photo should go
     File photoFile = null;
 
+    // Add folder map
+    Button map;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -84,6 +93,7 @@ public class ajout_facture extends AppCompatActivity {
         Prix = (EditText) findViewById(R.id.prix);
         Lieu = (EditText) findViewById(R.id.lieu);
         Date = (EditText) findViewById(R.id.date);
+        map = (Button) findViewById(R.id.map);
         Folder = (Spinner) findViewById(R.id.spinnerDossier);
         //Ajout du sinner devise
         spinnerDevise = (Spinner) findViewById(R.id.devise);
@@ -113,6 +123,28 @@ public class ajout_facture extends AppCompatActivity {
             @Override
             public void onNothingSelected(AdapterView<?> adapterView) {
 
+            }
+        });
+
+        ///////////////////////////////////////////////////////////////////////////
+        // When clicking the map button
+
+        map.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                try
+                {
+                    PlacePicker.IntentBuilder builder = new PlacePicker.IntentBuilder();
+                    startActivityForResult(builder.build(ajout_facture.this), PLACE_PICKER_REQUEST);
+                }
+                catch (GooglePlayServicesRepairableException e)
+                {
+                    e.printStackTrace();
+                }
+                catch (GooglePlayServicesNotAvailableException e)
+                {
+                    e.printStackTrace();
+                }
             }
         });
 
@@ -150,9 +182,24 @@ public class ajout_facture extends AppCompatActivity {
                             .get(Calendar.YEAR), calendar.get(Calendar.MONTH),
                             calendar.get(Calendar.DAY_OF_MONTH)).show();
 
+                    // n'affiche pas le clavier
                     InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
-                    imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+                    if (imm != null) {
+                        imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+                    }
 
+                }
+            }
+        });
+
+        Date.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                // n'affiche pas le clavier
+                InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (imm != null) {
+                    imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
                 }
             }
         });
@@ -227,11 +274,14 @@ public class ajout_facture extends AppCompatActivity {
             if (contentUri != null) {
                 contentUri = Uri.fromFile(new File(mCurrentPhotoPath));
 
-                Toast.makeText(getBaseContext(), "uri : " + contentUri.getPath(), Toast.LENGTH_LONG).show();
                 ImageCapture.setImageURI(contentUri);
                 Path = mCurrentPhotoPath.toString();
-                Toast.makeText(getBaseContext(), "path : " + Path, Toast.LENGTH_LONG).show();
             }
+        }
+        if (requestCode == PLACE_PICKER_REQUEST && resultCode == RESULT_OK) {
+            Place place = PlacePicker.getPlace(data, this);
+            String adresse = String.format("%s", place.getName());
+            Lieu.setText(adresse);
         }
     }
 

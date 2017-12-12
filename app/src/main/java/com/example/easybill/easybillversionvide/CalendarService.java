@@ -52,7 +52,7 @@ public class CalendarService extends IntentService {
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "service called");
-        timer = 10;
+        timer = 20;
     }
 
     @Override
